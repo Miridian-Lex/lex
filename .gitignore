@@ -17,3 +17,6 @@ tmp/
 # Development
 *.draft
 *.wip
+
+# Windows artifacts
+C:\\Users\\
