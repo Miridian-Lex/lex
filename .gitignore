@@ -20,3 +20,6 @@ tmp/
 
 # Windows artifacts
 C:\\Users\\
+
+# Agent OS installed commands (installed by Agent OS, not part of source)
+.claude/commands/agent-os/
