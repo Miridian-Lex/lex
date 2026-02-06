@@ -1,6 +1,6 @@
 #!/bin/bash
 # Meridian Lex - Operational Launcher
-# Version: 1.2
+# Version: 1.3
 
 set -e
 
@@ -62,24 +62,28 @@ launch_claude() {
 show_menu() {
     print_header
     echo "Context:"; echo ""
-    echo "  ${GREEN}0)${NC} Global (Home)"
-    echo "  ${GREEN}1)${NC} Select Project"
-    echo "  ${GREEN}2)${NC} New Project"
-    echo "  ${GREEN}3)${NC} Project Map"
-    echo "  ${GREEN}4)${NC} State"
+    echo -e "  ${GREEN}0)${NC} Global (Home)"
+    echo -e "  ${GREEN}1)${NC} Select Project"
+    echo -e "  ${GREEN}2)${NC} New Project"
+    echo -e "  ${GREEN}3)${NC} Delete Project"
+    echo -e "  ${GREEN}4)${NC} Project Map"
+    echo -e "  ${GREEN}5)${NC} State"
+    echo -e "  ${GREEN}6)${NC} Dev Mode Toggle"
     if [ "$AGENTOS_AVAILABLE" != true ]; then
         echo ""
-        echo "  ${YELLOW}5)${NC} Setup Agent OS Integration"
+        echo -e "  ${YELLOW}7)${NC} Setup Agent OS Integration"
     fi
-    echo ""; echo "  ${RED}q)${NC} Exit"; echo ""
+    echo ""; echo -e "  ${RED}q)${NC} Exit"; echo ""
     read -p "Choice: " choice
     case $choice in
         0) launch_claude "$LEX_HOME" "Home" ;;
         1) select_project ;;
         2) create_project ;;
-        3) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
-        4) cat "$STATE_FILE"; read -p "Press Enter..."; show_menu ;;
-        5)
+        3) delete_project ;;
+        4) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
+        5) cat "$STATE_FILE"; read -p "Press Enter..."; show_menu ;;
+        6) toggle_dev_mode; read -p "Press Enter..."; show_menu ;;
+        7)
             if [ "$AGENTOS_AVAILABLE" != true ]; then
                 setup_agentos_project
                 read -p "Press Enter..."; show_menu
@@ -120,6 +124,98 @@ create_project() {
     print_success "Created"
     read -p "Launch? (y/n): " yn
     [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
+}
+
+delete_project() {
+    echo ""; list_projects
+    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
+    [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
+    echo ""; read -p "Number to delete (or 'b'): " n
+    [[ "$n" == "b" ]] && { show_menu; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
+    local i=$((n - 1))
+    if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
+        local project_name="${projects[$i]}"
+        local project_path="$PROJECTS_DIR/$project_name"
+        echo ""
+        print_warn "⚠ DESTRUCTIVE OPERATION ⚠"
+        echo ""
+        echo -e "  Project: ${RED}$project_name${NC}"
+        echo "  Path: $project_path"
+        echo ""
+        echo "This will permanently delete all files in this project."
+        echo ""
+        read -p "Type project name to confirm deletion: " confirm
+        if [ "$confirm" == "$project_name" ]; then
+            rm -rf "$project_path"
+            print_success "Deleted: $project_name"
+            sleep 1
+            show_menu
+        else
+            print_error "Deletion cancelled (name mismatch)"
+            sleep 2
+            show_menu
+        fi
+    else
+        print_error "Invalid"; sleep 1; delete_project
+    fi
+}
+
+toggle_dev_mode() {
+    local system_lex="$HOME/.local/bin/lex"
+    local dev_lex="$HOME/meridian-home/projects/lex/src/lex"
+    local backup_lex="$HOME/.local/bin/lex.system-backup"
+
+    # Check current version state
+    if [ -L "$system_lex" ]; then
+        local target=$(readlink -f "$system_lex")
+        if [ "$target" == "$dev_lex" ]; then
+            # Currently in dev mode, switch to system
+            echo ""
+            print_info "Current mode: DEV (symlink active)"
+            echo ""
+            if [ ! -f "$backup_lex" ]; then
+                print_error "Cannot restore: system backup not found"
+                return 1
+            fi
+            read -p "Switch to SYSTEM mode? (y/n): " yn
+            if [[ "$yn" == "y" ]]; then
+                rm "$system_lex"
+                cp "$backup_lex" "$system_lex"
+                chmod +x "$system_lex"
+                print_success "Switched to SYSTEM mode"
+                print_warn "Restart lex for changes to take effect"
+            else
+                print_info "Cancelled"
+            fi
+        else
+            print_warn "Unknown symlink state"
+            echo "  Target: $target"
+            echo "  Expected: $dev_lex"
+        fi
+    elif [ -f "$system_lex" ]; then
+        # Currently in system mode, switch to dev
+        echo ""
+        print_info "Current mode: SYSTEM (stable)"
+        echo ""
+        if [ ! -f "$dev_lex" ]; then
+            print_error "Dev version not found: $dev_lex"
+            return 1
+        fi
+        read -p "Switch to DEV mode? (y/n): " yn
+        if [[ "$yn" == "y" ]]; then
+            cp "$system_lex" "$backup_lex"
+            rm "$system_lex"
+            ln -s "$dev_lex" "$system_lex"
+            print_success "Switched to DEV mode"
+            print_warn "Changes to $dev_lex take effect immediately"
+            print_info "Run 'lex --dev-mode' to switch back"
+        else
+            print_info "Cancelled"
+        fi
+    else
+        print_error "Lex not installed at $system_lex"
+    fi
 }
 
 setup_agentos_project() {
@@ -251,9 +347,11 @@ usage() {
     echo "  -l, --list              List projects"
     echo "  -g, --global            Launch global/home context"
     echo "  -n, --new NAME          Create new project"
+    echo "  -d, --delete NAME       Delete project (with confirmation)"
     echo "  -m, --map               Show project map"
     echo "  -s, --state             Show current state"
     echo "  -v, --version           Show lex version"
+    echo "  --dev-mode              Toggle between dev and system versions"
     echo ""
     echo "Agent OS Integration:"
     echo "  --agentos-init [PROFILE]    Initialize Agent OS in current/specified project"
@@ -275,7 +373,7 @@ main() {
     [ $# -eq 0 ] && { show_menu; return; }
     case "$1" in
         -h|--help) usage ;;
-        -v|--version) echo "Meridian Lex v1.2" ;;
+        -v|--version) echo "Meridian Lex v1.3" ;;
         -l|--list) print_header; list_projects ;;
         -g|--global) launch_claude "$LEX_HOME" "Home" ;;
         -n|--new)
@@ -288,8 +386,30 @@ main() {
             print_success "Created: $2"
             launch_claude "$PROJECTS_DIR/$2" "$2"
             ;;
+        -d|--delete)
+            [ -z "$2" ] && { print_error "Project name required"; exit 1; }
+            local project_path="$PROJECTS_DIR/$2"
+            [ ! -d "$project_path" ] && { print_error "Project not found: $2"; exit 1; }
+            echo ""
+            print_warn "⚠ DESTRUCTIVE OPERATION ⚠"
+            echo ""
+            echo -e "  Project: ${RED}$2${NC}"
+            echo "  Path: $project_path"
+            echo ""
+            echo "This will permanently delete all files in this project."
+            echo ""
+            read -p "Type project name to confirm deletion: " confirm
+            if [ "$confirm" == "$2" ]; then
+                rm -rf "$project_path"
+                print_success "Deleted: $2"
+            else
+                print_error "Deletion cancelled (name mismatch)"
+                exit 1
+            fi
+            ;;
         -m|--map) cat "$PROJECT_MAP" ;;
         -s|--state) cat "$STATE_FILE" ;;
+        --dev-mode) toggle_dev_mode ;;
 
         # Agent OS Integration
         --agentos-setup)
