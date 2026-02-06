@@ -1,0 +1,138 @@
+#!/bin/bash
+# Meridian Lex - Operational Launcher
+# Version: 1.0
+
+set -e
+
+LEX_HOME="/home/meridian/meridian-home"
+PROJECTS_DIR="$LEX_HOME/projects"
+STATE_FILE="$LEX_HOME/STATE.md"
+PROJECT_MAP="$LEX_HOME/PROJECT-MAP.md"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_header() {
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  MERIDIAN LEX - Operational Launcher${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
+print_success() { echo -e "${GREEN}✓${NC} $1"; }
+print_error() { echo -e "${RED}✗${NC} $1"; }
+print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
+
+update_state() {
+    local mode=$1
+    local focus=$2
+    local timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
+    sed -i "s/^**Last Updated**:.*/\*\*Last Updated\*\*: $timestamp/" "$STATE_FILE" 2>/dev/null || true
+}
+
+list_projects() {
+    [ ! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
+    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
+    [ ${#projects[@]} -eq 0 ] && { echo -e "${YELLOW}No projects${NC}"; return; }
+    echo "Projects:"; echo ""
+    for i in "${!projects[@]}"; do echo "  $((i + 1))) ${projects[$i]}"; done
+}
+
+launch_claude() {
+    cd "$1"
+    update_state "DIRECTED" "$2"
+    print_info "Launching: $2"
+    exec claude
+}
+
+show_menu() {
+    print_header
+    echo "Context:"; echo ""
+    echo "  ${GREEN}0)${NC} Global (Home)"
+    echo "  ${GREEN}1)${NC} Select Project"
+    echo "  ${GREEN}2)${NC} New Project"
+    echo "  ${GREEN}3)${NC} Project Map"
+    echo "  ${GREEN}4)${NC} State"
+    echo ""; echo "  ${RED}q)${NC} Exit"; echo ""
+    read -p "Choice: " choice
+    case $choice in
+        0) launch_claude "$LEX_HOME" "Home" ;;
+        1) select_project ;;
+        2) create_project ;;
+        3) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
+        4) cat "$STATE_FILE"; read -p "Press Enter..."; show_menu ;;
+        q|Q) exit 0 ;;
+        *) print_error "Invalid"; sleep 1; show_menu ;;
+    esac
+}
+
+select_project() {
+    echo ""; list_projects
+    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
+    [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
+    echo ""; read -p "Number (or 'b'): " n
+    [[ "$n" == "b" ]] && { show_menu; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
+    local i=$((n - 1))
+    if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
+        launch_claude "$PROJECTS_DIR/${projects[$i]}" "${projects[$i]}"
+    else
+        print_error "Invalid"; sleep 1; select_project
+    fi
+}
+
+create_project() {
+    echo ""; read -p "Name: " name
+    [ -z "$name" ] && { print_error "Required"; sleep 1; show_menu; return; }
+    local path="$PROJECTS_DIR/$name"
+    [ -d "$path" ] && { print_error "Exists"; sleep 1; show_menu; return; }
+    mkdir -p "$path"/{src,tests,docs,.claude}
+    cd "$path"; git init
+    echo "# $name" > README.md
+    echo "# Project: $name" > .claude/CLAUDE.md
+    touch .gitignore
+    print_success "Created"
+    read -p "Launch? (y/n): " yn
+    [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
+}
+
+usage() {
+    echo "Usage: lex [options] [project]"
+    echo ""
+    echo "Options:"
+    echo "  -h  Help"
+    echo "  -l  List"
+    echo "  -g  Global"
+    echo "  -n NAME  New"
+    echo "  -m  Map"
+    echo "  -s  State"
+}
+
+main() {
+    [ $# -eq 0 ] && { show_menu; return; }
+    case "$1" in
+        -h|--help) usage ;;
+        -l|--list) print_header; list_projects ;;
+        -g|--global) launch_claude "$LEX_HOME" "Home" ;;
+        -n|--new)
+            [ -z "$2" ] && { print_error "Name required"; exit 1; }
+            mkdir -p "$PROJECTS_DIR/$2"/{src,tests,docs,.claude}
+            cd "$PROJECTS_DIR/$2"; git init
+            touch README.md .claude/CLAUDE.md .gitignore
+            print_success "Created: $2"
+            launch_claude "$PROJECTS_DIR/$2" "$2"
+            ;;
+        -m|--map) cat "$PROJECT_MAP" ;;
+        -s|--state) cat "$STATE_FILE" ;;
+        *)
+            [ ! -d "$PROJECTS_DIR/$1" ] && { print_error "Not found: $1"; list_projects; exit 1; }
+            launch_claude "$PROJECTS_DIR/$1" "$1"
+            ;;
+    esac
+}
+
+main "$@"

@@ -1,0 +1,186 @@
+#!/bin/bash
+# Lex Version Manager
+# Swap between system (stable) and dev versions
+
+set -e
+
+SYSTEM_LEX="$HOME/.local/bin/lex"
+DEV_LEX="$HOME/meridian-home/projects/lex/src/lex"
+BACKUP_LEX="$HOME/.local/bin/lex.system-backup"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_success() { echo -e "${GREEN}✓${NC} $1"; }
+print_error() { echo -e "${RED}✗${NC} $1"; }
+print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
+print_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
+
+check_version() {
+    if [ -L "$SYSTEM_LEX" ]; then
+        local target=$(readlink -f "$SYSTEM_LEX")
+        if [ "$target" == "$DEV_LEX" ]; then
+            echo "dev"
+        else
+            echo "unknown-link"
+        fi
+    elif [ -f "$SYSTEM_LEX" ]; then
+        echo "system"
+    else
+        echo "none"
+    fi
+}
+
+show_status() {
+    local current=$(check_version)
+    echo ""
+    echo "Lex Version Status:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    case $current in
+        system)
+            echo -e "  Active: ${GREEN}System (Stable)${NC}"
+            echo "  Location: $SYSTEM_LEX"
+            [ -f "$BACKUP_LEX" ] && echo -e "  Backup: ${BLUE}Available${NC}"
+            ;;
+        dev)
+            echo -e "  Active: ${YELLOW}Dev (Development)${NC}"
+            echo "  Symlink: $SYSTEM_LEX → $DEV_LEX"
+            [ -f "$BACKUP_LEX" ] && echo -e "  Backup: ${BLUE}Available${NC}"
+            ;;
+        none)
+            echo -e "  Active: ${RED}None (Not installed)${NC}"
+            ;;
+        *)
+            echo -e "  Active: ${RED}Unknown${NC}"
+            echo "  Check: $SYSTEM_LEX"
+            ;;
+    esac
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+}
+
+switch_to_dev() {
+    local current=$(check_version)
+
+    if [ "$current" == "dev" ]; then
+        print_info "Already using dev version"
+        return 0
+    fi
+
+    if [ ! -f "$DEV_LEX" ]; then
+        print_error "Dev version not found: $DEV_LEX"
+        exit 1
+    fi
+
+    # Backup system version if it exists
+    if [ -f "$SYSTEM_LEX" ] && [ ! -L "$SYSTEM_LEX" ]; then
+        print_info "Backing up system version..."
+        cp "$SYSTEM_LEX" "$BACKUP_LEX"
+        rm "$SYSTEM_LEX"
+    elif [ -L "$SYSTEM_LEX" ]; then
+        rm "$SYSTEM_LEX"
+    fi
+
+    # Create symlink to dev version
+    ln -s "$DEV_LEX" "$SYSTEM_LEX"
+    print_success "Switched to dev version"
+    print_warn "Changes to $DEV_LEX will take effect immediately"
+}
+
+switch_to_system() {
+    local current=$(check_version)
+
+    if [ "$current" == "system" ]; then
+        print_info "Already using system version"
+        return 0
+    fi
+
+    if [ ! -f "$BACKUP_LEX" ]; then
+        print_error "System backup not found: $BACKUP_LEX"
+        print_info "Cannot restore system version"
+        exit 1
+    fi
+
+    # Remove symlink if present
+    if [ -L "$SYSTEM_LEX" ]; then
+        rm "$SYSTEM_LEX"
+    fi
+
+    # Restore from backup
+    cp "$BACKUP_LEX" "$SYSTEM_LEX"
+    chmod +x "$SYSTEM_LEX"
+    print_success "Switched to system version"
+}
+
+install_dev() {
+    if [ ! -f "$DEV_LEX" ]; then
+        print_error "Dev version not found: $DEV_LEX"
+        exit 1
+    fi
+
+    # Backup current system version
+    if [ -f "$SYSTEM_LEX" ] && [ ! -L "$SYSTEM_LEX" ]; then
+        print_info "Backing up current system version..."
+        cp "$SYSTEM_LEX" "$BACKUP_LEX"
+    fi
+
+    # Copy dev to system (not symlink)
+    cp "$DEV_LEX" "$SYSTEM_LEX"
+    chmod +x "$SYSTEM_LEX"
+    print_success "Installed dev version as system version"
+    print_info "This is now the stable version"
+}
+
+usage() {
+    echo "Usage: lex-version <command>"
+    echo ""
+    echo "Commands:"
+    echo "  status        Show current version status"
+    echo "  dev           Switch to dev version (symlink)"
+    echo "  system        Switch to system version (restore backup)"
+    echo "  install       Install dev version as new system version"
+    echo "  help          Show this help"
+    echo ""
+    echo "Versions:"
+    echo "  System:  $SYSTEM_LEX"
+    echo "  Dev:     $DEV_LEX"
+    echo "  Backup:  $BACKUP_LEX"
+}
+
+main() {
+    case "${1:-status}" in
+        status|--status|-s)
+            show_status
+            ;;
+        dev|--dev|-d)
+            switch_to_dev
+            show_status
+            ;;
+        system|--system|-r)
+            switch_to_system
+            show_status
+            ;;
+        install|--install|-i)
+            install_dev
+            show_status
+            ;;
+        help|--help|-h)
+            usage
+            ;;
+        *)
+            print_error "Unknown command: $1"
+            echo ""
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

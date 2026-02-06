@@ -1,0 +1,119 @@
+# Lex - Meridian Lex Operational Launcher
+
+A project and context management launcher for Claude Code, integrated with the Meridian Lex infrastructure.
+
+## Overview
+
+Lex is the command-line launcher that manages projects, state, and Claude Code sessions within the Meridian ecosystem at `~/meridian-home/`.
+
+## Features
+
+- **Interactive Menu**: Browse and launch projects via TUI
+- **Direct Launch**: `lex project-name` to jump directly to a project
+- **Project Creation**: Quick scaffolding with `lex --new project-name`
+- **State Management**: Track operational mode and focus
+- **Project Mapping**: Visualize project relationships
+
+## Installation
+
+### System Version (Stable)
+
+The stable version is installed at `~/.local/bin/lex`.
+
+### Dev Version (Development)
+
+This project contains the development version at `src/lex`. Use `lex-version` to manage which version is active.
+
+## Version Management
+
+Use `src/lex-version` to swap between system and dev versions:
+
+```bash
+# Check current version
+~/meridian-home/projects/lex/src/lex-version status
+
+# Switch to dev version (symlink - changes take effect immediately)
+~/meridian-home/projects/lex/src/lex-version dev
+
+# Switch back to system version (restore from backup)
+~/meridian-home/projects/lex/src/lex-version system
+
+# Install dev version as new system version
+~/meridian-home/projects/lex/src/lex-version install
+```
+
+**Tip**: Add `alias lexv='~/meridian-home/projects/lex/src/lex-version'` to your shell config for quick access.
+
+## Usage
+
+```bash
+# Interactive menu
+lex
+
+# Launch specific project
+lex project-name
+
+# Global/home context
+lex --global
+lex -g
+
+# Create new project
+lex --new project-name
+lex -n project-name
+
+# List projects
+lex --list
+lex -l
+
+# Show project map
+lex --map
+lex -m
+
+# Show state
+lex --state
+lex -s
+```
+
+## Project Structure
+
+```
+lex/
+├── src/
+│   ├── lex              # Main launcher script
+│   └── lex-version      # Version management utility
+├── tests/
+│   └── test-lex.sh      # Test suite
+├── docs/
+│   └── architecture.md  # Architecture documentation
+└── .claude/
+    └── CLAUDE.md        # Development guidance
+```
+
+## Integration Points
+
+- **Home Base**: `~/meridian-home/`
+- **Projects**: `~/meridian-home/projects/`
+- **State**: `~/meridian-home/STATE.md`
+- **Map**: `~/meridian-home/PROJECT-MAP.md`
+- **Config**: `~/meridian-home/LEX-CONFIG.yaml`
+
+## Development
+
+When working on lex:
+
+1. Make changes to `src/lex`
+2. Test with `src/lex-version dev` (creates symlink)
+3. Changes take effect immediately
+4. When stable, use `src/lex-version install` to promote to system version
+
+## Version History
+
+- **v1.0**: Initial implementation with interactive menu and basic project management
+
+## Future Enhancements
+
+- Agent OS integration (`--agentos-init`, `--agentos-verify`)
+- Token budget tracking and warnings
+- Automated backup and restore
+- Project templates and profiles
+- Remote session integration

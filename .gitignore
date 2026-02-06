@@ -1,0 +1,19 @@
+# Backups
+*.backup
+*.bak
+*~
+
+# Testing artifacts
+test-output/
+*.test.log
+
+# OS and temp files
+.DS_Store
+*.swp
+*.swo
+.cache/
+tmp/
+
+# Development
+*.draft
+*.wip
