@@ -1,6 +1,6 @@
 #!/bin/bash
 # Meridian Lex - Operational Launcher
-# Version: 1.1
+# Version: 1.2
 
 set -e
 
@@ -35,6 +35,7 @@ print_header() {
 print_success() { echo -e "${GREEN}✓${NC} $1"; }
 print_error() { echo -e "${RED}✗${NC} $1"; }
 print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
+print_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 
 update_state() {
     local mode=$1
@@ -66,6 +67,10 @@ show_menu() {
     echo "  ${GREEN}2)${NC} New Project"
     echo "  ${GREEN}3)${NC} Project Map"
     echo "  ${GREEN}4)${NC} State"
+    if [ "$AGENTOS_AVAILABLE" != true ]; then
+        echo ""
+        echo "  ${YELLOW}5)${NC} Setup Agent OS Integration"
+    fi
     echo ""; echo "  ${RED}q)${NC} Exit"; echo ""
     read -p "Choice: " choice
     case $choice in
@@ -74,6 +79,14 @@ show_menu() {
         2) create_project ;;
         3) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
         4) cat "$STATE_FILE"; read -p "Press Enter..."; show_menu ;;
+        5)
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                setup_agentos_project
+                read -p "Press Enter..."; show_menu
+            else
+                print_error "Invalid"; sleep 1; show_menu
+            fi
+            ;;
         q|Q) exit 0 ;;
         *) print_error "Invalid"; sleep 1; show_menu ;;
     esac
@@ -109,6 +122,127 @@ create_project() {
     [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
 }
 
+setup_agentos_project() {
+    echo ""
+    print_info "Agent OS integration requires the 'setup-agentos' project"
+    echo ""
+    echo "This project provides:"
+    echo "  - Agent OS base installation scripts"
+    echo "  - Project-specific Agent OS initialization"
+    echo "  - Integration functions for lex"
+    echo ""
+    echo "Location: $SETUP_AGENTOS_DIR"
+    echo ""
+    read -p "Create setup-agentos project now? (y/n): " yn
+
+    if [[ "$yn" != "y" ]]; then
+        print_info "Setup cancelled"
+        return 1
+    fi
+
+    # Create the setup-agentos project structure
+    mkdir -p "$SETUP_AGENTOS_DIR"/{src,tests,docs,.claude}
+    cd "$SETUP_AGENTOS_DIR"
+    git init
+
+    # Create basic README
+    cat > README.md <<'EOF'
+# Setup Agent OS
+
+Agent OS integration and installation tools for Meridian Lex projects.
+
+## Purpose
+
+This project provides:
+- Agent OS base installation at `~/agent-os/` or `~/.agent-os/`
+- Project-specific Agent OS initialization
+- Integration functions for the lex launcher
+
+## Usage
+
+Via lex:
+```bash
+lex --agentos-install-base    # Install base Agent OS
+lex --agentos-init            # Initialize in current project
+lex --agentos-status          # Check status
+```
+
+## Structure
+
+- `src/lex-integration.sh` - Integration functions sourced by lex
+- `scripts/` - Installation and setup scripts
+EOF
+
+    # Create placeholder integration file
+    cat > src/lex-integration.sh <<'EOF'
+#!/bin/bash
+# Agent OS Integration Functions for Lex
+# Sourced by lex when available
+
+agentos_init_current_project() {
+    local profile="${1:-default}"
+    echo "Initializing Agent OS in $(pwd) with profile: $profile"
+    # TODO: Implement project initialization
+    echo "⚠ Agent OS initialization not yet implemented"
+    echo "  This is a placeholder - full implementation pending"
+}
+
+agentos_status() {
+    local target="${1:-.}"
+    echo "Agent OS status for: $target"
+    # TODO: Implement status check
+    echo "⚠ Status check not yet implemented"
+}
+
+agentos_verify() {
+    local target="${1:-.}"
+    echo "Verifying Agent OS installation for: $target"
+    # TODO: Implement verification
+    echo "⚠ Verification not yet implemented"
+}
+
+agentos_install_base() {
+    echo "Installing Agent OS base..."
+    # TODO: Implement base installation
+    echo "⚠ Base installation not yet implemented"
+    echo "  Manual setup may be required"
+}
+
+agentos_update_base() {
+    echo "Updating Agent OS base..."
+    # TODO: Implement base update
+    echo "⚠ Update not yet implemented"
+}
+EOF
+
+    chmod +x src/lex-integration.sh
+
+    # Create .claude/CLAUDE.md
+    cat > .claude/CLAUDE.md <<'EOF'
+# Project: setup-agentos
+
+Agent OS integration and installation tools for Meridian Lex infrastructure.
+
+## Purpose
+
+Provides Agent OS setup, initialization, and integration functions for lex launcher.
+
+## Development
+
+Implement the functions in `src/lex-integration.sh` to provide full Agent OS support.
+EOF
+
+    touch .gitignore
+
+    print_success "Created setup-agentos project with placeholder functions"
+    print_warn "Integration functions are placeholders - full implementation needed"
+    echo ""
+    print_info "The lex launcher will now detect Agent OS integration"
+    print_info "Edit $SETUP_AGENTOS_DIR/src/lex-integration.sh to implement features"
+
+    return 0
+}
+
 usage() {
     echo "Usage: lex [options] [project]"
     echo ""
@@ -122,14 +256,18 @@ usage() {
     echo "  -v, --version           Show lex version"
     echo ""
     echo "Agent OS Integration:"
-    if [ "$AGENTOS_AVAILABLE" = true ]; then
-        echo "  --agentos-init [PROFILE]    Initialize Agent OS in current/specified project"
-        echo "  --agentos-status [PROJECT]  Show Agent OS installation status"
-        echo "  --agentos-verify [PROJECT]  Verify Agent OS installations"
-        echo "  --agentos-install-base      Install Agent OS base (~/.agent-os/)"
-        echo "  --agentos-update            Update Agent OS base installation"
-    else
-        echo "  (Not available - setup-agentos not found)"
+    echo "  --agentos-init [PROFILE]    Initialize Agent OS in current/specified project"
+    echo "  --agentos-status [PROJECT]  Show Agent OS installation status"
+    echo "  --agentos-verify [PROJECT]  Verify Agent OS installations"
+    echo "  --agentos-install-base      Install Agent OS base (~/.agent-os/)"
+    echo "  --agentos-update            Update Agent OS base installation"
+    echo "  --agentos-setup             Set up Agent OS integration (creates setup-agentos project)"
+    echo ""
+    if [ "$AGENTOS_AVAILABLE" != true ]; then
+        echo -e "${YELLOW}Note: Agent OS integration not available${NC}"
+        echo "  Missing: $SETUP_AGENTOS_DIR"
+        echo "  Run 'lex --agentos-setup' to enable Agent OS features"
+        echo ""
     fi
 }
 
@@ -137,7 +275,7 @@ main() {
     [ $# -eq 0 ] && { show_menu; return; }
     case "$1" in
         -h|--help) usage ;;
-        -v|--version) echo "Meridian Lex v1.1" ;;
+        -v|--version) echo "Meridian Lex v1.2" ;;
         -l|--list) print_header; list_projects ;;
         -g|--global) launch_claude "$LEX_HOME" "Home" ;;
         -n|--new)
@@ -154,8 +292,20 @@ main() {
         -s|--state) cat "$STATE_FILE" ;;
 
         # Agent OS Integration
+        --agentos-setup)
+            if [ "$AGENTOS_AVAILABLE" = true ]; then
+                print_info "Agent OS integration already available"
+                exit 0
+            fi
+            setup_agentos_project
+            ;;
         --agentos-init)
-            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                print_error "Agent OS integration not available"
+                echo ""
+                print_info "Run 'lex --agentos-setup' to enable Agent OS features"
+                exit 1
+            fi
             if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
                 cd "$PROJECTS_DIR/$2"
                 agentos_init_current_project "$3"
@@ -164,7 +314,12 @@ main() {
             fi
             ;;
         --agentos-status)
-            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                print_error "Agent OS integration not available"
+                echo ""
+                print_info "Run 'lex --agentos-setup' to enable Agent OS features"
+                exit 1
+            fi
             if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
                 agentos_status "$PROJECTS_DIR/$2"
             else
@@ -172,7 +327,12 @@ main() {
             fi
             ;;
         --agentos-verify)
-            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                print_error "Agent OS integration not available"
+                echo ""
+                print_info "Run 'lex --agentos-setup' to enable Agent OS features"
+                exit 1
+            fi
             if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
                 agentos_verify "$PROJECTS_DIR/$2"
             else
@@ -180,11 +340,21 @@ main() {
             fi
             ;;
         --agentos-install-base)
-            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                print_error "Agent OS integration not available"
+                echo ""
+                print_info "Run 'lex --agentos-setup' to enable Agent OS features"
+                exit 1
+            fi
             agentos_install_base
             ;;
         --agentos-update)
-            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ "$AGENTOS_AVAILABLE" != true ]; then
+                print_error "Agent OS integration not available"
+                echo ""
+                print_info "Run 'lex --agentos-setup' to enable Agent OS features"
+                exit 1
+            fi
             agentos_update_base
             ;;
 

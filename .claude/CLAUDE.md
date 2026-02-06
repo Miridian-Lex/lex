@@ -7,9 +7,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Lex** is the operational launcher for Meridian Lex - a command-line tool that manages Claude Code projects, contexts, and sessions within the `~/meridian-home/` infrastructure.
 
 **Language**: Bash shell script
-**Current Version**: 1.0
+**Current Version**: 1.2
 
 ## Architecture
+
+### Execution Flow
+
+When `lex` is invoked, the following happens:
+
+1. **Initialization**:
+   - Sets `set -e` for fail-fast behavior
+   - Defines color constants and utility functions
+   - Attempts to source Agent OS integration from `setup-agentos/src/lex-integration.sh`
+   - Sets `AGENTOS_AVAILABLE` flag based on source success
+
+2. **Command routing**:
+   - No args → Interactive menu (`show_menu()`)
+   - Flag → Execute corresponding function
+   - Project name → Launch Claude Code in that project (`launch_claude()`)
+
+3. **Session launch**:
+   - Changes to target directory
+   - Updates `STATE.md` with mode and project name
+   - Executes `claude` (replaces current process with `exec`)
+
+4. **Agent OS delegation**:
+   - All `--agentos-*` commands check `AGENTOS_AVAILABLE` flag
+   - If unavailable, print error and exit
+   - If available, delegate to sourced functions from `lex-integration.sh`
 
 ### Core Script (`src/lex`)
 
@@ -19,6 +44,7 @@ Single-file bash script with:
 - **Project management**: Creation, listing, and navigation
 - **State tracking**: Updates `STATE.md` on launches
 - **Color-coded output**: ANSI color codes for visual clarity
+- **Agent OS integration**: Dynamically sources integration functions from `setup-agentos` project
 
 ### Version Management (`src/lex-version`)
 
@@ -27,10 +53,19 @@ Utility for swapping between versions:
 - **Dev version**: Development, at `src/lex`
 - **Backup**: `~/.local/bin/lex.system-backup`
 
-**Modes**:
-- `dev`: Symlink system to dev (live changes)
-- `system`: Restore from backup
-- `install`: Promote dev to system (new stable)
+**Version States** (detected by `check_version()`):
+- `system` - Regular file at `~/.local/bin/lex` (stable)
+- `dev` - Symlink pointing to `src/lex` (development mode)
+- `none` - No installation found
+- `unknown-link` - Symlink pointing elsewhere (unexpected state)
+
+**Operations**:
+- `dev` - Backs up system version, creates symlink to `src/lex` (changes take effect immediately)
+- `system` - Removes symlink, restores from backup (requires backup to exist)
+- `install` - Copies dev to system as regular file (promotes to stable, not a symlink)
+- `status` - Shows current state, paths, and backup availability
+
+**Safety**: Always backs up before destructive operations; uses `readlink -f` for canonical path resolution.
 
 ## Development Workflow
 
@@ -50,6 +85,7 @@ Utility for swapping between versions:
 - `~/meridian-home/PROJECT-MAP.md` - Project relationships
 - `~/meridian-home/LEX-CONFIG.yaml` - Configuration (future)
 - `~/.local/bin/lex` - System installation
+- `~/meridian-home/projects/setup-agentos/src/lex-integration.sh` - Agent OS integration functions (sourced at runtime)
 
 ### State Management
 
@@ -58,31 +94,74 @@ The `update_state()` function modifies `STATE.md`:
 update_state "DIRECTED" "project-name"
 ```
 
-Updates the timestamp in STATE.md to track activity.
+Updates the timestamp in STATE.md to track activity. Uses `sed -i` for in-place updates with `|| true` to prevent failures if STATE.md doesn't exist.
+
+### Agent OS Integration
+
+Lex dynamically integrates with the `setup-agentos` project:
+
+1. **Runtime loading**: Sources `lex-integration.sh` if present in `~/meridian-home/projects/setup-agentos/src/`
+2. **Availability check**: Sets `AGENTOS_AVAILABLE` flag (true/false) based on whether integration functions loaded
+3. **Conditional features**: Agent OS commands only available when `AGENTOS_AVAILABLE=true`
+4. **Function delegation**: All Agent OS operations delegated to sourced functions (e.g., `agentos_init_current_project`, `agentos_status`, `agentos_verify`)
+5. **Setup assistance** (v1.2+): When unavailable, lex offers to create the `setup-agentos` project with placeholder functions
+
+This design allows lex to operate without Agent OS while gracefully enabling features when available. The `setup_agentos_project()` function creates a basic project structure with placeholder integration functions when the setup-agentos project is missing.
+
+### Interactive Menu System
+
+The TUI (`show_menu()`) provides numbered options:
+- **Option 0**: Global/home context (`~/meridian-home/`)
+- **Option 1**: Project selection (calls `select_project()`)
+- **Option 2**: New project creation (calls `create_project()`)
+- **Option 3**: Display project map (reads `PROJECT-MAP.md`)
+- **Option 4**: Display state (reads `STATE.md`)
+- **Option q**: Exit
+
+Menu navigation is recursive - invalid choices loop back to menu after brief error display.
+
+### Project Scaffolding
+
+When creating new projects (via `-n` flag or menu option 2), lex creates:
+```
+project-name/
+├── src/         # Source code
+├── tests/       # Test files
+├── docs/        # Documentation
+├── .claude/     # Claude Code configuration
+│   └── CLAUDE.md  # Project-specific instructions
+├── README.md    # Project README
+└── .gitignore   # Git ignore patterns (empty initially)
+```
+
+Git is initialized automatically. User is prompted whether to launch Claude Code immediately after creation.
 
 ## Command Structure
 
 ### Flags and Options
 
-Current flags:
+**Core flags:**
 - `-h, --help` - Show usage
+- `-v, --version` - Show lex version
 - `-l, --list` - List projects
 - `-g, --global` - Launch in global context
 - `-n, --new NAME` - Create new project
 - `-m, --map` - Show project map
 - `-s, --state` - Show current state
 
-### Future Flags (Planned)
+**Agent OS integration:**
+- `--agentos-setup` - Set up Agent OS integration (creates setup-agentos project with placeholders)
+- `--agentos-init [PROFILE]` - Initialize Agent OS in current project (or specify profile)
+- `--agentos-status [PROJECT]` - Show Agent OS installation status for project
+- `--agentos-verify [PROJECT]` - Verify Agent OS installations
+- `--agentos-install-base` - Install Agent OS base at `~/.agent-os/`
+- `--agentos-update` - Update Agent OS base installation
 
-Agent OS integration:
-- `--agentos-init [project]` - Initialize Agent OS
-- `--agentos-verify` - Verify installations
-- `--agentos-update` - Update base Agent OS
-- `--agentos-profile PROFILE` - Set project profile
+**Note**: When Agent OS integration is unavailable, lex displays helpful guidance and suggests running `--agentos-setup`.
 
-Version management:
-- `--version` - Show lex version
+**Future flags (planned):**
 - `--upgrade` - Update lex from repo/source
+- Profile templates for `--new` command
 
 ## Code Style
 
@@ -125,6 +204,13 @@ lex -n test-project
 lex -l
 lex -m
 lex -s
+lex -v
+
+# Test Agent OS integration (if setup-agentos available)
+cd ~/meridian-home/projects/some-project
+lex --agentos-init
+lex --agentos-status
+lex --agentos-verify
 ```
 
 ### Automated Testing (Future)
@@ -133,14 +219,16 @@ Create `tests/test-lex.sh` for:
 - State updates
 - Error handling
 - Flag parsing
+- Agent OS integration availability detection
 
 ## Future Development
 
-### Phase 1: Agent OS Integration
-- Add `--agentos-*` flags
-- Read config from `LEX-CONFIG.yaml`
-- Auto-initialize Agent OS on `--new`
-- Integrate with `setup-agentos` project
+### Phase 1: Agent OS Integration ✓ COMPLETED (v1.2)
+- ✓ Add `--agentos-*` flags (v1.1)
+- ✓ Integrate with `setup-agentos` project (v1.1)
+- ✓ Offer setup assistance when unavailable (v1.2)
+- ⚬ Read config from `LEX-CONFIG.yaml` (pending)
+- ⚬ Auto-initialize Agent OS on `--new` (pending)
 
 ### Phase 2: Enhanced Features
 - Token budget tracking and warnings
@@ -205,11 +293,15 @@ echo "  ${GREEN}5)${NC} New Option"
 
 ## Dependencies
 
+**Required:**
 - **Bash**: 4.0+ (uses arrays)
 - **Git**: For project initialization
-- **Claude Code**: Target integration
-- **sed**: For state file updates
-- **readlink**: For symlink resolution (in lex-version)
+- **Claude Code**: Target integration (`exec claude` for launching sessions)
+- **sed**: For state file updates (with `-i` flag)
+- **readlink**: For symlink resolution in `lex-version` (with `-f` flag for canonical path)
+
+**Optional:**
+- **setup-agentos project**: For Agent OS integration features (`~/meridian-home/projects/setup-agentos/src/lex-integration.sh`)
 
 ## Security Considerations
 

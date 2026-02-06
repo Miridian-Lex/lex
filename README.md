@@ -83,6 +83,9 @@ lex -v
 ### Agent OS Integration (v1.1+)
 
 ```bash
+# Set up Agent OS integration (creates setup-agentos project)
+lex --agentos-setup
+
 # Initialize Agent OS in current project
 lex --agentos-init
 
@@ -108,6 +111,8 @@ lex --agentos-install-base
 # Update Agent OS base
 lex --agentos-update
 ```
+
+**Note**: If Agent OS integration is not available, lex will display a helpful message and offer to set it up via `lex --agentos-setup`.
 
 ## Project Structure
 
@@ -143,6 +148,7 @@ When working on lex:
 
 ## Version History
 
+- **v1.2** (2026-02-06): Agent OS setup assistance - offers installation when unavailable
 - **v1.1** (2026-02-06): Agent OS integration with full command suite
 - **v1.0** (2026-02-06): Initial implementation with interactive menu and basic project management
 
