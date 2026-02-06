@@ -1,6 +1,6 @@
 #!/bin/bash
 # Meridian Lex - Operational Launcher
-# Version: 1.0
+# Version: 1.1
 
 set -e
 
@@ -8,6 +8,15 @@ LEX_HOME="/home/meridian/meridian-home"
 PROJECTS_DIR="$LEX_HOME/projects"
 STATE_FILE="$LEX_HOME/STATE.md"
 PROJECT_MAP="$LEX_HOME/PROJECT-MAP.md"
+SETUP_AGENTOS_DIR="$LEX_HOME/projects/setup-agentos"
+
+# Source Agent OS integration if available
+if [ -f "$SETUP_AGENTOS_DIR/src/lex-integration.sh" ]; then
+    source "$SETUP_AGENTOS_DIR/src/lex-integration.sh"
+    AGENTOS_AVAILABLE=true
+else
+    AGENTOS_AVAILABLE=false
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -104,30 +113,81 @@ usage() {
     echo "Usage: lex [options] [project]"
     echo ""
     echo "Options:"
-    echo "  -h  Help"
-    echo "  -l  List"
-    echo "  -g  Global"
-    echo "  -n NAME  New"
-    echo "  -m  Map"
-    echo "  -s  State"
+    echo "  -h, --help              Show this help"
+    echo "  -l, --list              List projects"
+    echo "  -g, --global            Launch global/home context"
+    echo "  -n, --new NAME          Create new project"
+    echo "  -m, --map               Show project map"
+    echo "  -s, --state             Show current state"
+    echo "  -v, --version           Show lex version"
+    echo ""
+    echo "Agent OS Integration:"
+    if [ "$AGENTOS_AVAILABLE" = true ]; then
+        echo "  --agentos-init [PROFILE]    Initialize Agent OS in current/specified project"
+        echo "  --agentos-status [PROJECT]  Show Agent OS installation status"
+        echo "  --agentos-verify [PROJECT]  Verify Agent OS installations"
+        echo "  --agentos-install-base      Install Agent OS base (~/.agent-os/)"
+        echo "  --agentos-update            Update Agent OS base installation"
+    else
+        echo "  (Not available - setup-agentos not found)"
+    fi
 }
 
 main() {
     [ $# -eq 0 ] && { show_menu; return; }
     case "$1" in
         -h|--help) usage ;;
+        -v|--version) echo "Meridian Lex v1.1" ;;
         -l|--list) print_header; list_projects ;;
         -g|--global) launch_claude "$LEX_HOME" "Home" ;;
         -n|--new)
             [ -z "$2" ] && { print_error "Name required"; exit 1; }
             mkdir -p "$PROJECTS_DIR/$2"/{src,tests,docs,.claude}
             cd "$PROJECTS_DIR/$2"; git init
-            touch README.md .claude/CLAUDE.md .gitignore
+            echo "# $2" > "$PROJECTS_DIR/$2/README.md"
+            echo "# Project: $2" > "$PROJECTS_DIR/$2/.claude/CLAUDE.md"
+            touch "$PROJECTS_DIR/$2/.gitignore"
             print_success "Created: $2"
             launch_claude "$PROJECTS_DIR/$2" "$2"
             ;;
         -m|--map) cat "$PROJECT_MAP" ;;
         -s|--state) cat "$STATE_FILE" ;;
+
+        # Agent OS Integration
+        --agentos-init)
+            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
+                cd "$PROJECTS_DIR/$2"
+                agentos_init_current_project "$3"
+            else
+                agentos_init_current_project "$2"
+            fi
+            ;;
+        --agentos-status)
+            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
+                agentos_status "$PROJECTS_DIR/$2"
+            else
+                agentos_status "${2:-.}"
+            fi
+            ;;
+        --agentos-verify)
+            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            if [ -n "$2" ] && [ -d "$PROJECTS_DIR/$2" ]; then
+                agentos_verify "$PROJECTS_DIR/$2"
+            else
+                agentos_verify "$2"
+            fi
+            ;;
+        --agentos-install-base)
+            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            agentos_install_base
+            ;;
+        --agentos-update)
+            [ "$AGENTOS_AVAILABLE" != true ] && { print_error "Agent OS integration not available"; exit 1; }
+            agentos_update_base
+            ;;
+
         *)
             [ ! -d "$PROJECTS_DIR/$1" ] && { print_error "Not found: $1"; list_projects; exit 1; }
             launch_claude "$PROJECTS_DIR/$1" "$1"
