@@ -46,6 +46,8 @@ Use `src/lex-version` to swap between system and dev versions:
 
 ## Usage
 
+### Basic Commands
+
 ```bash
 # Interactive menu
 lex
@@ -72,6 +74,39 @@ lex -m
 # Show state
 lex --state
 lex -s
+
+# Show version
+lex --version
+lex -v
+```
+
+### Agent OS Integration (v1.1+)
+
+```bash
+# Initialize Agent OS in current project
+lex --agentos-init
+
+# Initialize with specific profile
+lex --agentos-init python
+
+# Initialize in specific project
+cd project-name
+lex --agentos-init
+
+# Show Agent OS status
+lex --agentos-status
+
+# Check status for specific project
+lex --agentos-status project-name
+
+# Verify installations
+lex --agentos-verify
+
+# Install Agent OS base (if not already installed)
+lex --agentos-install-base
+
+# Update Agent OS base
+lex --agentos-update
 ```
 
 ## Project Structure
@@ -108,12 +143,13 @@ When working on lex:
 
 ## Version History
 
-- **v1.0**: Initial implementation with interactive menu and basic project management
+- **v1.1** (2026-02-06): Agent OS integration with full command suite
+- **v1.0** (2026-02-06): Initial implementation with interactive menu and basic project management
 
 ## Future Enhancements
 
-- Agent OS integration (`--agentos-init`, `--agentos-verify`)
 - Token budget tracking and warnings
 - Automated backup and restore
 - Project templates and profiles
 - Remote session integration
+- Auto-initialization of Agent OS on `--new` (configurable)
