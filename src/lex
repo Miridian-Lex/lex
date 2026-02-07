@@ -38,6 +38,39 @@ main() {
     # No arguments - show interactive menu
     [ $# -eq 0 ] && { show_menu; return; }
 
+    # Parse flag options first (can be combined with other commands)
+    while [[ "$1" == --flags || "$1" == --full-access || "$1" == --preset || "$1" == --no-flags ]]; do
+        case "$1" in
+            --flags)
+                [ -z "$2" ] && { print_error "Flag value required for --flags"; exit 1; }
+                export LEX_CLAUDE_FLAGS="$2"
+                shift 2
+                ;;
+            --full-access)
+                export LEX_CLAUDE_FLAGS="--dangerously-skip-permissions"
+                shift
+                ;;
+            --preset)
+                [ -z "$2" ] && { print_error "Preset name required for --preset"; exit 1; }
+                # Get preset from config
+                local preset_flags=$($LEX_CONFIG_SH get "claude.presets.$2" 2>/dev/null | tr -d '"')
+                if [ -z "$preset_flags" ]; then
+                    print_error "Preset not found: $2"
+                    echo ""
+                    print_info "Available presets:"
+                    $LEX_CONFIG_SH get claude.presets 2>/dev/null || echo "  No presets configured"
+                    exit 1
+                fi
+                export LEX_CLAUDE_FLAGS="$preset_flags"
+                shift 2
+                ;;
+            --no-flags)
+                export LEX_CLAUDE_FLAGS=""
+                shift
+                ;;
+        esac
+    done
+
     # Parse arguments
     case "$1" in
         # Help and version

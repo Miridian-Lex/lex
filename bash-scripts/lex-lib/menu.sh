@@ -69,7 +69,18 @@ show_menu() {
 
 # Usage/help display
 show_usage() {
-    echo "Usage: lex [options] [project]"
+    echo "Usage: lex [flags] [options] [project]"
+    echo ""
+    echo "Claude Code Flags (can be combined with other options):"
+    echo "  --flags \"FLAGS\"         Pass custom flags to Claude Code"
+    echo "  --full-access           Launch with --dangerously-skip-permissions"
+    echo "  --preset NAME           Use preset from LEX-CONFIG.yaml"
+    echo "  --no-flags              Clear any default flags"
+    echo ""
+    echo "Examples:"
+    echo "  lex --full-access myproject"
+    echo "  lex --flags \"--permission-mode plan\" myproject"
+    echo "  lex --preset plan-mode --continue myproject"
     echo ""
     echo "Options:"
     echo "  -h, --help              Show this help"
