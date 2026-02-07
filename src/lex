@@ -1,379 +1,50 @@
 #!/bin/bash
 # Meridian Lex - Operational Launcher
-# Version: 1.3
+# Version: 2.0 - Modular Architecture
+# Architecture: Hexagonal (ports and adapters pattern)
+# - Core business logic in lex-lib modules
+# - Main script handles routing and initialization
 
 set -e
 
-LEX_HOME="/home/meridian/meridian-home"
-PROJECTS_DIR="$LEX_HOME/projects"
-STATE_FILE="$LEX_HOME/STATE.md"
-PROJECT_MAP="$LEX_HOME/PROJECT-MAP.md"
-SETUP_AGENTOS_DIR="$LEX_HOME/projects/setup-agentos"
-
-# Source Agent OS integration if available
-if [ -f "$SETUP_AGENTOS_DIR/src/lex-integration.sh" ]; then
-    source "$SETUP_AGENTOS_DIR/src/lex-integration.sh"
-    AGENTOS_AVAILABLE=true
+# Determine if we're running from dev or system location
+SCRIPT_PATH="$(readlink -f "$0")"
+if [[ "$SCRIPT_PATH" == *"/projects/lex/"* ]]; then
+    export LEX_DEV_MODE=true
+    export LEX_LIB_DIR="$(dirname "$SCRIPT_PATH")/../bash-scripts/lex-lib"
 else
-    AGENTOS_AVAILABLE=false
+    export LEX_DEV_MODE=false
+    export LEX_LIB_DIR="/home/meridian/meridian-home/bash-scripts/lex-lib"
 fi
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Source core library (must be first - exports paths and utilities)
+source "$LEX_LIB_DIR/core.sh"
 
-print_header() {
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  MERIDIAN LEX - Operational Launcher${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    echo ""
-}
+# Source other modules
+source "$LEX_LIB_DIR/projects.sh"
+source "$LEX_LIB_DIR/config.sh"
+source "$LEX_LIB_DIR/menu.sh"
+source "$LEX_LIB_DIR/agentos.sh"
+source "$LEX_LIB_DIR/conversations.sh"
 
-print_success() { echo -e "${GREEN}✓${NC} $1"; }
-print_error() { echo -e "${RED}✗${NC} $1"; }
-print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
-print_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
+# Initialize Agent OS integration check
+check_agentos_available
 
-update_state() {
-    local mode=$1
-    local focus=$2
-    local timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
-    sed -i "s/^**Last Updated**:.*/\*\*Last Updated\*\*: $timestamp/" "$STATE_FILE" 2>/dev/null || true
-}
+# Version
+export LEX_VERSION="2.0.0"
 
-list_projects() {
-    [ ! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
-    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
-    [ ${#projects[@]} -eq 0 ] && { echo -e "${YELLOW}No projects${NC}"; return; }
-    echo "Projects:"; echo ""
-    for i in "${!projects[@]}"; do echo "  $((i + 1))) ${projects[$i]}"; done
-}
-
-launch_claude() {
-    cd "$1"
-    update_state "DIRECTED" "$2"
-    print_info "Launching: $2"
-    exec claude
-}
-
-show_menu() {
-    print_header
-    echo "Context:"; echo ""
-    echo -e "  ${GREEN}0)${NC} Global (Home)"
-    echo -e "  ${GREEN}1)${NC} Select Project"
-    echo -e "  ${GREEN}2)${NC} New Project"
-    echo -e "  ${GREEN}3)${NC} Delete Project"
-    echo -e "  ${GREEN}4)${NC} Project Map"
-    echo -e "  ${GREEN}5)${NC} State"
-    echo -e "  ${GREEN}6)${NC} Dev Mode Toggle"
-    if [ "$AGENTOS_AVAILABLE" != true ]; then
-        echo ""
-        echo -e "  ${YELLOW}7)${NC} Setup Agent OS Integration"
-    fi
-    echo ""; echo -e "  ${RED}q)${NC} Exit"; echo ""
-    read -p "Choice: " choice
-    case $choice in
-        0) launch_claude "$LEX_HOME" "Home" ;;
-        1) select_project ;;
-        2) create_project ;;
-        3) delete_project ;;
-        4) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
-        5) cat "$STATE_FILE"; read -p "Press Enter..."; show_menu ;;
-        6) toggle_dev_mode; read -p "Press Enter..."; show_menu ;;
-        7)
-            if [ "$AGENTOS_AVAILABLE" != true ]; then
-                setup_agentos_project
-                read -p "Press Enter..."; show_menu
-            else
-                print_error "Invalid"; sleep 1; show_menu
-            fi
-            ;;
-        q|Q) exit 0 ;;
-        *) print_error "Invalid"; sleep 1; show_menu ;;
-    esac
-}
-
-select_project() {
-    echo ""; list_projects
-    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
-    [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
-    echo ""; read -p "Number (or 'b'): " n
-    [[ "$n" == "b" ]] && { show_menu; return; }
-    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
-    local i=$((n - 1))
-    if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
-        launch_claude "$PROJECTS_DIR/${projects[$i]}" "${projects[$i]}"
-    else
-        print_error "Invalid"; sleep 1; select_project
-    fi
-}
-
-create_project() {
-    echo ""; read -p "Name: " name
-    [ -z "$name" ] && { print_error "Required"; sleep 1; show_menu; return; }
-    local path="$PROJECTS_DIR/$name"
-    [ -d "$path" ] && { print_error "Exists"; sleep 1; show_menu; return; }
-    mkdir -p "$path"/{src,tests,docs,.claude}
-    cd "$path"; git init
-    echo "# $name" > README.md
-    echo "# Project: $name" > .claude/CLAUDE.md
-    touch .gitignore
-    print_success "Created"
-    read -p "Launch? (y/n): " yn
-    [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
-}
-
-delete_project() {
-    echo ""; list_projects
-    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
-    [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
-    echo ""; read -p "Number to delete (or 'b'): " n
-    [[ "$n" == "b" ]] && { show_menu; return; }
-    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
-    local i=$((n - 1))
-    if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
-        local project_name="${projects[$i]}"
-        local project_path="$PROJECTS_DIR/$project_name"
-        echo ""
-        print_warn "⚠ DESTRUCTIVE OPERATION ⚠"
-        echo ""
-        echo -e "  Project: ${RED}$project_name${NC}"
-        echo "  Path: $project_path"
-        echo ""
-        echo "This will permanently delete all files in this project."
-        echo ""
-        read -p "Type project name to confirm deletion: " confirm
-        if [ "$confirm" == "$project_name" ]; then
-            rm -rf "$project_path"
-            print_success "Deleted: $project_name"
-            sleep 1
-            show_menu
-        else
-            print_error "Deletion cancelled (name mismatch)"
-            sleep 2
-            show_menu
-        fi
-    else
-        print_error "Invalid"; sleep 1; delete_project
-    fi
-}
-
-toggle_dev_mode() {
-    local system_lex="$HOME/.local/bin/lex"
-    local dev_lex="$HOME/meridian-home/projects/lex/src/lex"
-    local backup_lex="$HOME/.local/bin/lex.system-backup"
-
-    # Check current version state
-    if [ -L "$system_lex" ]; then
-        local target=$(readlink -f "$system_lex")
-        if [ "$target" == "$dev_lex" ]; then
-            # Currently in dev mode, switch to system
-            echo ""
-            print_info "Current mode: DEV (symlink active)"
-            echo ""
-            if [ ! -f "$backup_lex" ]; then
-                print_error "Cannot restore: system backup not found"
-                return 1
-            fi
-            read -p "Switch to SYSTEM mode? (y/n): " yn
-            if [[ "$yn" == "y" ]]; then
-                rm "$system_lex"
-                cp "$backup_lex" "$system_lex"
-                chmod +x "$system_lex"
-                print_success "Switched to SYSTEM mode"
-                print_warn "Restart lex for changes to take effect"
-            else
-                print_info "Cancelled"
-            fi
-        else
-            print_warn "Unknown symlink state"
-            echo "  Target: $target"
-            echo "  Expected: $dev_lex"
-        fi
-    elif [ -f "$system_lex" ]; then
-        # Currently in system mode, switch to dev
-        echo ""
-        print_info "Current mode: SYSTEM (stable)"
-        echo ""
-        if [ ! -f "$dev_lex" ]; then
-            print_error "Dev version not found: $dev_lex"
-            return 1
-        fi
-        read -p "Switch to DEV mode? (y/n): " yn
-        if [[ "$yn" == "y" ]]; then
-            cp "$system_lex" "$backup_lex"
-            rm "$system_lex"
-            ln -s "$dev_lex" "$system_lex"
-            print_success "Switched to DEV mode"
-            print_warn "Changes to $dev_lex take effect immediately"
-            print_info "Run 'lex --dev-mode' to switch back"
-        else
-            print_info "Cancelled"
-        fi
-    else
-        print_error "Lex not installed at $system_lex"
-    fi
-}
-
-setup_agentos_project() {
-    echo ""
-    print_info "Agent OS integration requires the 'setup-agentos' project"
-    echo ""
-    echo "This project provides:"
-    echo "  - Agent OS base installation scripts"
-    echo "  - Project-specific Agent OS initialization"
-    echo "  - Integration functions for lex"
-    echo ""
-    echo "Location: $SETUP_AGENTOS_DIR"
-    echo ""
-    read -p "Create setup-agentos project now? (y/n): " yn
-
-    if [[ "$yn" != "y" ]]; then
-        print_info "Setup cancelled"
-        return 1
-    fi
-
-    # Create the setup-agentos project structure
-    mkdir -p "$SETUP_AGENTOS_DIR"/{src,tests,docs,.claude}
-    cd "$SETUP_AGENTOS_DIR"
-    git init
-
-    # Create basic README
-    cat > README.md <<'EOF'
-# Setup Agent OS
-
-Agent OS integration and installation tools for Meridian Lex projects.
-
-## Purpose
-
-This project provides:
-- Agent OS base installation at `~/agent-os/` or `~/.agent-os/`
-- Project-specific Agent OS initialization
-- Integration functions for the lex launcher
-
-## Usage
-
-Via lex:
-```bash
-lex --agentos-install-base    # Install base Agent OS
-lex --agentos-init            # Initialize in current project
-lex --agentos-status          # Check status
-```
-
-## Structure
-
-- `src/lex-integration.sh` - Integration functions sourced by lex
-- `scripts/` - Installation and setup scripts
-EOF
-
-    # Create placeholder integration file
-    cat > src/lex-integration.sh <<'EOF'
-#!/bin/bash
-# Agent OS Integration Functions for Lex
-# Sourced by lex when available
-
-agentos_init_current_project() {
-    local profile="${1:-default}"
-    echo "Initializing Agent OS in $(pwd) with profile: $profile"
-    # TODO: Implement project initialization
-    echo "⚠ Agent OS initialization not yet implemented"
-    echo "  This is a placeholder - full implementation pending"
-}
-
-agentos_status() {
-    local target="${1:-.}"
-    echo "Agent OS status for: $target"
-    # TODO: Implement status check
-    echo "⚠ Status check not yet implemented"
-}
-
-agentos_verify() {
-    local target="${1:-.}"
-    echo "Verifying Agent OS installation for: $target"
-    # TODO: Implement verification
-    echo "⚠ Verification not yet implemented"
-}
-
-agentos_install_base() {
-    echo "Installing Agent OS base..."
-    # TODO: Implement base installation
-    echo "⚠ Base installation not yet implemented"
-    echo "  Manual setup may be required"
-}
-
-agentos_update_base() {
-    echo "Updating Agent OS base..."
-    # TODO: Implement base update
-    echo "⚠ Update not yet implemented"
-}
-EOF
-
-    chmod +x src/lex-integration.sh
-
-    # Create .claude/CLAUDE.md
-    cat > .claude/CLAUDE.md <<'EOF'
-# Project: setup-agentos
-
-Agent OS integration and installation tools for Meridian Lex infrastructure.
-
-## Purpose
-
-Provides Agent OS setup, initialization, and integration functions for lex launcher.
-
-## Development
-
-Implement the functions in `src/lex-integration.sh` to provide full Agent OS support.
-EOF
-
-    touch .gitignore
-
-    print_success "Created setup-agentos project with placeholder functions"
-    print_warn "Integration functions are placeholders - full implementation needed"
-    echo ""
-    print_info "The lex launcher will now detect Agent OS integration"
-    print_info "Edit $SETUP_AGENTOS_DIR/src/lex-integration.sh to implement features"
-
-    return 0
-}
-
-usage() {
-    echo "Usage: lex [options] [project]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help              Show this help"
-    echo "  -l, --list              List projects"
-    echo "  -g, --global            Launch global/home context"
-    echo "  -n, --new NAME          Create new project"
-    echo "  -d, --delete NAME       Delete project (with confirmation)"
-    echo "  -m, --map               Show project map"
-    echo "  -s, --state             Show current state"
-    echo "  -v, --version           Show lex version"
-    echo "  --dev-mode              Toggle between dev and system versions"
-    echo ""
-    echo "Agent OS Integration:"
-    echo "  --agentos-init [PROFILE]    Initialize Agent OS in current/specified project"
-    echo "  --agentos-status [PROJECT]  Show Agent OS installation status"
-    echo "  --agentos-verify [PROJECT]  Verify Agent OS installations"
-    echo "  --agentos-install-base      Install Agent OS base (~/.agent-os/)"
-    echo "  --agentos-update            Update Agent OS base installation"
-    echo "  --agentos-setup             Set up Agent OS integration (creates setup-agentos project)"
-    echo ""
-    if [ "$AGENTOS_AVAILABLE" != true ]; then
-        echo -e "${YELLOW}Note: Agent OS integration not available${NC}"
-        echo "  Missing: $SETUP_AGENTOS_DIR"
-        echo "  Run 'lex --agentos-setup' to enable Agent OS features"
-        echo ""
-    fi
-}
-
+# Main entry point - command dispatcher
 main() {
+    # No arguments - show interactive menu
     [ $# -eq 0 ] && { show_menu; return; }
+
+    # Parse arguments
     case "$1" in
-        -h|--help) usage ;;
-        -v|--version) echo "Meridian Lex v1.3" ;;
+        # Help and version
+        -h|--help) show_usage ;;
+        -v|--version) echo "Meridian Lex v$LEX_VERSION" ;;
+
+        # Project operations
         -l|--list) print_header; list_projects ;;
         -g|--global) launch_claude "$LEX_HOME" "Home" ;;
         -n|--new)
@@ -407,8 +78,25 @@ main() {
                 exit 1
             fi
             ;;
+
+        # Information display
         -m|--map) cat "$PROJECT_MAP" ;;
         -s|--state) cat "$STATE_FILE" ;;
+        -t|--tasks) cat "$TASK_QUEUE" ;;
+
+        # Configuration management
+        --config) $LEX_CONFIG_SH show ;;
+        --mode)
+            if [ -z "$2" ]; then
+                $LEX_MODE_SH get
+            else
+                $LEX_MODE_SH set "$2"
+            fi
+            ;;
+        --tokens) $LEX_CONFIG_SH tokens ;;
+        --check-auto) $CHECK_AUTO_SH ;;
+
+        # System operations
         --dev-mode) toggle_dev_mode ;;
 
         # Agent OS Integration
@@ -478,9 +166,31 @@ main() {
             agentos_update_base
             ;;
 
+        # Conversation management
+        --continue)
+            [ -z "$2" ] && { print_error "Project name required"; exit 1; }
+            [ ! -d "$PROJECTS_DIR/$2" ] && { print_error "Project not found: $2"; exit 1; }
+            export LEX_CURRENT_PROJECT="$2"
+            launch_claude_continue "$PROJECTS_DIR/$2" "$2"
+            ;;
+        --resume-picker)
+            [ -z "$2" ] && { print_error "Project name required"; exit 1; }
+            [ ! -d "$PROJECTS_DIR/$2" ] && { print_error "Project not found: $2"; exit 1; }
+            export LEX_CURRENT_PROJECT="$2"
+            launch_claude_resume_picker "$PROJECTS_DIR/$2" "$2"
+            ;;
+        --new-conversation)
+            [ -z "$2" ] && { print_error "Project name required"; exit 1; }
+            [ ! -d "$PROJECTS_DIR/$2" ] && { print_error "Project not found: $2"; exit 1; }
+            export LEX_CURRENT_PROJECT="$2"
+            launch_claude_new "$PROJECTS_DIR/$2" "$2"
+            ;;
+
+        # Project launch (by name) - uses smart_launch
         *)
             [ ! -d "$PROJECTS_DIR/$1" ] && { print_error "Not found: $1"; list_projects; exit 1; }
-            launch_claude "$PROJECTS_DIR/$1" "$1"
+            export LEX_CURRENT_PROJECT="$1"
+            smart_launch "$PROJECTS_DIR/$1" "$1"
             ;;
     esac
 }
