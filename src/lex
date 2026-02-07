@@ -11,10 +11,10 @@ set -e
 SCRIPT_PATH="$(readlink -f "$0")"
 if [[ "$SCRIPT_PATH" == *"/projects/lex/"* ]]; then
     export LEX_DEV_MODE=true
-    export LEX_LIB_DIR="$(dirname "$SCRIPT_PATH")/../bash-scripts/lex-lib"
+    export LEX_LIB_DIR="$(dirname "$SCRIPT_PATH")/../lib/lex-lib"
 else
     export LEX_DEV_MODE=false
-    export LEX_LIB_DIR="/home/meridian/meridian-home/bash-scripts/lex-lib"
+    export LEX_LIB_DIR="/home/meridian/meridian-home/projects/lex/lib/lex-lib"
 fi
 
 # Source core library (must be first - exports paths and utilities)

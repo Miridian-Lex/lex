@@ -21,8 +21,8 @@ export LEX_CONFIG="$LEX_INTERNAL/config/LEX-CONFIG.yaml"
 export SETUP_AGENTOS_DIR="$LEX_HOME/projects/setup-agentos"
 
 # Utilities
-export LEX_CONFIG_SH="$LEX_HOME/bash-scripts/lex-config.sh"
-export LEX_MODE_SH="$LEX_HOME/bash-scripts/lex-mode.sh"
+export LEX_CONFIG_SH="$LEX_HOME/projects/lex/lib/lex-config.sh"
+export LEX_MODE_SH="$LEX_HOME/projects/lex/lib/lex-mode.sh"
 export CHECK_AUTO_SH="$LEX_HOME/bash-scripts/check-autonomous-mode.sh"
 
 # Print utilities

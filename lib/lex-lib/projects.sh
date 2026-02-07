@@ -26,6 +26,26 @@ select_project() {
     fi
 }
 
+select_project_full_access() {
+    echo ""
+    print_warn "Full Access Mode: --dangerously-skip-permissions"
+    echo ""
+    list_projects
+    local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
+    [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
+    echo ""; read -p "Number (or 'b'): " n
+    [[ "$n" == "b" ]] && { show_menu; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project_full_access; return; }
+    local i=$((n - 1))
+    if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
+        # Set full-access flag and use smart_launch
+        export LEX_CLAUDE_FLAGS="--dangerously-skip-permissions"
+        smart_launch "$PROJECTS_DIR/${projects[$i]}" "${projects[$i]}"
+    else
+        print_error "Invalid"; sleep 1; select_project_full_access
+    fi
+}
+
 create_project() {
     echo ""; read -p "Name: " name
     [ -z "$name" ] && { print_error "Required"; sleep 1; show_menu; return; }

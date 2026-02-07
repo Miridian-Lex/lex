@@ -17,6 +17,7 @@ show_menu() {
     echo "Context:"; echo ""
     echo -e "  ${GREEN}0)${NC} Global (Home)"
     echo -e "  ${GREEN}1)${NC} Select Project"
+    echo -e "  ${GREEN}f)${NC} Select Project (Full Access)"
     echo -e "  ${GREEN}2)${NC} New Project"
     echo -e "  ${GREEN}3)${NC} Delete Project"
     echo ""
@@ -45,6 +46,7 @@ show_menu() {
     case $choice in
         0) launch_claude "$LEX_HOME" "Home" ;;
         1) select_project ;;
+        f|F) select_project_full_access ;;
         2) create_project ;;
         3) delete_project ;;
         4) cat "$PROJECT_MAP"; read -p "Press Enter..."; show_menu ;;
