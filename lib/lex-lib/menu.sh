@@ -88,6 +88,7 @@ show_usage() {
     echo "  -h, --help              Show this help"
     echo "  -l, --list              List projects"
     echo "  -g, --global            Launch global/home context"
+    echo "  --god                   Launch global with full permissions (god mode)"
     echo "  -n, --new NAME          Create new project"
     echo "  -d, --delete NAME       Delete project (with confirmation)"
     echo "  -m, --map               Show project map"

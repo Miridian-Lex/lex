@@ -80,6 +80,10 @@ main() {
         # Project operations
         -l|--list) print_header; list_projects ;;
         -g|--global) launch_claude "$LEX_HOME" "Home" ;;
+        --god)
+            export LEX_CLAUDE_FLAGS="--dangerously-skip-permissions"
+            launch_claude "$LEX_HOME" "Home"
+            ;;
         -n|--new)
             [ -z "$2" ] && { print_error "Name required"; exit 1; }
             mkdir -p "$PROJECTS_DIR/$2"/{src,tests,docs,.claude}
