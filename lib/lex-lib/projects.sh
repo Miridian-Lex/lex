@@ -3,11 +3,11 @@
 # Project management functions
 
 list_projects() {
-    [ ! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
+    [! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
     local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
     [ ${#projects[@]} -eq 0 ] && { echo -e "${YELLOW}No projects${NC}"; return; }
     echo "Projects:"; echo ""
-    for i in "${!projects[@]}"; do echo "  $((i + 1))) ${projects[$i]}"; done
+    for i in "${!projects[@]}"; do echo " $((i + 1))) ${projects[$i]}"; done
 }
 
 select_project() {
@@ -16,7 +16,7 @@ select_project() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
+    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         # Use smart_launch for conversation management
@@ -35,7 +35,7 @@ select_project_full_access() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project_full_access; return; }
+    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project_full_access; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         # Set full-access flag and use smart_launch
@@ -54,8 +54,8 @@ create_project() {
     mkdir -p "$path"/{src,tests,docs,.claude}
     cd "$path"; git init
     echo "# $name" > README.md
-    echo "# Project: $name" > .claude/CLAUDE.md
-    touch .gitignore
+    echo "# Project: $name" >.claude/CLAUDE.md
+    touch.gitignore
     print_success "Created"
     read -p "Launch? (y/n): " yn
     [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
@@ -67,16 +67,16 @@ delete_project() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number to delete (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
+    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         local project_name="${projects[$i]}"
         local project_path="$PROJECTS_DIR/$project_name"
         echo ""
-        print_warn "⚠ DESTRUCTIVE OPERATION ⚠"
+        print_warn "[WARNING] DESTRUCTIVE OPERATION [WARNING]"
         echo ""
-        echo -e "  Project: ${RED}$project_name${NC}"
-        echo "  Path: $project_path"
+        echo -e " Project: ${RED}$project_name${NC}"
+        echo " Path: $project_path"
         echo ""
         echo "This will permanently delete all files in this project."
         echo ""

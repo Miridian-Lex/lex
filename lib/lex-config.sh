@@ -15,13 +15,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Check if yq is available
-if ! command -v yq &> /dev/null; then
+if! command -v yq &> /dev/null; then
     echo -e "${RED}Error:${NC} yq is required but not installed" >&2
     exit 1
 fi
 
 # Check if config file exists
-if [ ! -f "$CONFIG_FILE" ]; then
+if [! -f "$CONFIG_FILE" ]; then
     echo -e "${RED}Error:${NC} Configuration file not found: $CONFIG_FILE" >&2
     exit 1
 fi
@@ -61,7 +61,7 @@ lex_config_set() {
     # (Debian's yq converts to JSON on updates)
     if [ "$key" = "mode.current" ]; then
         sed -i 's/current: ".*"/current: "'"$value"'"/' "$CONFIG_FILE"
-        echo -e "${GREEN}✓${NC} Updated $key to $value"
+        echo -e "${GREEN}[OK]${NC} Updated $key to $value"
     else
         echo -e "${YELLOW}Warning:${NC} Generic key updates not yet implemented" >&2
         echo "Please edit $CONFIG_FILE manually for key: $key" >&2
@@ -116,8 +116,8 @@ lex_config_show() {
     echo -e "${BLUE}=== Meridian Lex Configuration ===${NC}\n"
 
     echo -e "${GREEN}Operational Mode:${NC}"
-    echo "  Mode: $(lex_config_get 'mode.current' | tr -d '"')"
-    echo "  Description: $(lex_config_get 'mode.description' | tr -d '"')"
+    echo " Mode: $(lex_config_get 'mode.current' | tr -d '"')"
+    echo " Description: $(lex_config_get 'mode.description' | tr -d '"')"
     echo
 
     echo -e "${GREEN}Token Budget:${NC}"
@@ -125,22 +125,22 @@ lex_config_show() {
     echo
 
     echo -e "${GREEN}Autonomous Mode:${NC}"
-    echo "  Enabled: $(lex_config_get 'autonomous_mode.enabled')"
-    echo "  Max Daily Tokens: $(lex_config_get 'autonomous_mode.max_daily_tokens')"
-    echo "  Work Hours: $(lex_config_get 'autonomous_mode.work_hours.start' | tr -d '"') - $(lex_config_get 'autonomous_mode.work_hours.end' | tr -d '"')"
-    echo "  Pace: $(lex_config_get 'autonomous_mode.work_pace' | tr -d '"')"
+    echo " Enabled: $(lex_config_get 'autonomous_mode.enabled')"
+    echo " Max Daily Tokens: $(lex_config_get 'autonomous_mode.max_daily_tokens')"
+    echo " Work Hours: $(lex_config_get 'autonomous_mode.work_hours.start' | tr -d '"') - $(lex_config_get 'autonomous_mode.work_hours.end' | tr -d '"')"
+    echo " Pace: $(lex_config_get 'autonomous_mode.work_pace' | tr -d '"')"
     echo
 
     echo -e "${GREEN}Scheduling:${NC}"
-    echo "  Enabled: $(lex_config_get 'scheduling.enabled')"
-    echo "  Check Interval: $(lex_config_get 'scheduling.todo_check_interval')s"
+    echo " Enabled: $(lex_config_get 'scheduling.enabled')"
+    echo " Check Interval: $(lex_config_get 'scheduling.todo_check_interval')s"
     echo
 
     echo -e "${GREEN}Metadata:${NC}"
-    echo "  Vessel ID: $(lex_config_get 'metadata.vessel_id' | tr -d '"')"
-    echo "  Operator: $(lex_config_get 'metadata.operator' | tr -d '"')"
-    echo "  Commissioned: $(lex_config_get 'metadata.commissioned' | tr -d '"')"
-    echo "  Config Version: $(lex_config_get 'metadata.config_version' | tr -d '"')"
+    echo " Vessel ID: $(lex_config_get 'metadata.vessel_id' | tr -d '"')"
+    echo " Operator: $(lex_config_get 'metadata.operator' | tr -d '"')"
+    echo " Commissioned: $(lex_config_get 'metadata.commissioned' | tr -d '"')"
+    echo " Config Version: $(lex_config_get 'metadata.config_version' | tr -d '"')"
 }
 
 # Main command dispatcher
@@ -180,23 +180,23 @@ case "${1:-}" in
         echo "Lex Configuration Utility"
         echo
         echo "Usage:"
-        echo "  lex-config.sh [command] [arguments]"
+        echo " lex-config.sh [command] [arguments]"
         echo
         echo "Commands:"
-        echo "  show              Display full configuration"
-        echo "  get <key>         Get a configuration value (e.g., 'mode.current')"
-        echo "  set <key> <val>   Set a configuration value"
-        echo "  mode              Get current operational mode"
-        echo "  tokens            Display token budget information"
-        echo "  paths [name]      Get all paths or specific path"
-        echo "  autonomous        Check if autonomous mode is enabled"
-        echo "  help              Show this help message"
+        echo " show Display full configuration"
+        echo " get <key> Get a configuration value (e.g., 'mode.current')"
+        echo " set <key> <val> Set a configuration value"
+        echo " mode Get current operational mode"
+        echo " tokens Display token budget information"
+        echo " paths [name] Get all paths or specific path"
+        echo " autonomous Check if autonomous mode is enabled"
+        echo " help Show this help message"
         echo
         echo "Examples:"
-        echo "  lex-config.sh mode"
-        echo "  lex-config.sh get token_budget.daily_limit"
-        echo "  lex-config.sh paths state_md"
-        echo "  lex-config.sh set mode.current AUTONOMOUS"
+        echo " lex-config.sh mode"
+        echo " lex-config.sh get token_budget.daily_limit"
+        echo " lex-config.sh paths state_md"
+        echo " lex-config.sh set mode.current AUTONOMOUS"
         ;;
     *)
         echo -e "${RED}Error:${NC} Unknown command: $1" >&2

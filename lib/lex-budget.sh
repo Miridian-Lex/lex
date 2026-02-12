@@ -18,14 +18,14 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Check if stats file exists
-if [ ! -f "$STATS_FILE" ]; then
+if [! -f "$STATS_FILE" ]; then
     echo -e "${RED}Error:${NC} Stats cache not found at $STATS_FILE"
     echo "Run Claude Code at least once to generate stats"
     exit 1
 fi
 
 # Check if jq is available
-if ! command -v jq &> /dev/null; then
+if! command -v jq &> /dev/null; then
     echo -e "${RED}Error:${NC} jq is required but not installed"
     exit 1
 fi
@@ -39,15 +39,15 @@ RESERVED=$($LEX_CONFIG_SH get token_budget.reserved_for_commander | tr -d '"')
 TODAY=$(date +%Y-%m-%d)
 
 # Extract all-time token usage from modelUsage (it's an object, not array)
-TOTAL_INPUT=$(jq '[.modelUsage | to_entries[] | .value.inputTokens] | add // 0' "$STATS_FILE")
-TOTAL_OUTPUT=$(jq '[.modelUsage | to_entries[] | .value.outputTokens] | add // 0' "$STATS_FILE")
-CACHE_READ=$(jq '[.modelUsage | to_entries[] | .value.cacheReadInputTokens] | add // 0' "$STATS_FILE")
-CACHE_CREATE=$(jq '[.modelUsage | to_entries[] | .value.cacheCreationInputTokens] | add // 0' "$STATS_FILE")
+TOTAL_INPUT=$(jq '[.modelUsage | to_entries[] |.value.inputTokens] | add // 0' "$STATS_FILE")
+TOTAL_OUTPUT=$(jq '[.modelUsage | to_entries[] |.value.outputTokens] | add // 0' "$STATS_FILE")
+CACHE_READ=$(jq '[.modelUsage | to_entries[] |.value.cacheReadInputTokens] | add // 0' "$STATS_FILE")
+CACHE_CREATE=$(jq '[.modelUsage | to_entries[] |.value.cacheCreationInputTokens] | add // 0' "$STATS_FILE")
 
 # Get today's usage from dailyModelTokens
 # Note: tokensByModel contains total tokens (input+output combined) for each model
 TODAY_TOTAL=$(jq --arg date "$TODAY" '
-    [.dailyModelTokens[] | select(.date == $date) | .tokensByModel | to_entries[] | .value] | add // 0
+    [.dailyModelTokens[] | select(.date == $date) |.tokensByModel | to_entries[] |.value] | add // 0
 ' "$STATS_FILE")
 
 # Calculate budget metrics
@@ -77,7 +77,7 @@ fi
 # Display budget status
 show_budget() {
     echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
-    echo -e "${BLUE}  Lex Token Budget Status${NC}"
+    echo -e "${BLUE} Lex Token Budget Status${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "${CYAN}Date:${NC} $TODAY"
@@ -85,37 +85,37 @@ show_budget() {
     echo ""
 
     echo -e "${GREEN}Daily Budget:${NC}"
-    echo "  Limit:         $(printf '%12s' "$DAILY_LIMIT") tokens"
-    echo "  Used:          $(printf '%12s' "$TODAY_TOTAL") tokens"
-    echo "  Remaining:     $(printf '%12s' "$DAILY_REMAINING") tokens"
+    echo " Limit: $(printf '%12s' "$DAILY_LIMIT") tokens"
+    echo " Used: $(printf '%12s' "$TODAY_TOTAL") tokens"
+    echo " Remaining: $(printf '%12s' "$DAILY_REMAINING") tokens"
     echo ""
 
     echo -e "${GREEN}Autonomous Budget:${NC}"
-    echo "  Available:     $(printf '%12s' "$AUTONOMOUS_BUDGET") tokens (excludes reserved)"
-    echo "  Used:          $(printf '%12s' "$AUTONOMOUS_USED") tokens"
-    echo "  Remaining:     $(printf '%12s' "$AUTONOMOUS_REMAINING") tokens"
-    echo "  Reserved:      $(printf '%12s' "$RESERVED") tokens (for Commander)"
+    echo " Available: $(printf '%12s' "$AUTONOMOUS_BUDGET") tokens (excludes reserved)"
+    echo " Used: $(printf '%12s' "$AUTONOMOUS_USED") tokens"
+    echo " Remaining: $(printf '%12s' "$AUTONOMOUS_REMAINING") tokens"
+    echo " Reserved: $(printf '%12s' "$RESERVED") tokens (for Commander)"
     echo ""
 
     echo -e "${GREEN}All-Time Statistics:${NC}"
-    echo "  Total Input:   $(printf '%12s' "$TOTAL_INPUT") tokens"
-    echo "  Total Output:  $(printf '%12s' "$TOTAL_OUTPUT") tokens"
-    echo "  Cache Read:    $(printf '%12s' "$CACHE_READ") tokens"
-    echo "  Cache Create:  $(printf '%12s' "$CACHE_CREATE") tokens"
+    echo " Total Input: $(printf '%12s' "$TOTAL_INPUT") tokens"
+    echo " Total Output: $(printf '%12s' "$TOTAL_OUTPUT") tokens"
+    echo " Cache Read: $(printf '%12s' "$CACHE_READ") tokens"
+    echo " Cache Create: $(printf '%12s' "$CACHE_CREATE") tokens"
     echo ""
 }
 
 # Show warning if approaching limit
 show_warning() {
     if (( $(awk "BEGIN {print ($DAILY_PERCENT >= 75)}") )); then
-        echo -e "${YELLOW}⚠ WARNING:${NC} Token usage at ${DAILY_PERCENT}% of daily limit"
-        echo "  Consider pausing autonomous operations"
+        echo -e "${YELLOW}[WARNING] WARNING:${NC} Token usage at ${DAILY_PERCENT}% of daily limit"
+        echo " Consider pausing autonomous operations"
         echo ""
     fi
 
     if (( $(awk "BEGIN {print ($AUTONOMOUS_PERCENT >= 90)}") )); then
-        echo -e "${YELLOW}⚠ WARNING:${NC} Autonomous budget at ${AUTONOMOUS_PERCENT}%"
-        echo "  ${AUTONOMOUS_REMAINING} tokens remaining for autonomous work"
+        echo -e "${YELLOW}[WARNING] WARNING:${NC} Autonomous budget at ${AUTONOMOUS_PERCENT}%"
+        echo " ${AUTONOMOUS_REMAINING} tokens remaining for autonomous work"
         echo ""
     fi
 }
@@ -123,16 +123,16 @@ show_warning() {
 # Check if over budget
 check_budget() {
     if (( TODAY_TOTAL > DAILY_LIMIT )); then
-        echo -e "${RED}✗ OVER BUDGET${NC}"
-        echo "  Used: $TODAY_TOTAL / $DAILY_LIMIT tokens"
+        echo -e "${RED}[FAIL] OVER BUDGET${NC}"
+        echo " Used: $TODAY_TOTAL / $DAILY_LIMIT tokens"
         return 1
     elif (( AUTONOMOUS_USED > AUTONOMOUS_BUDGET )); then
         echo -e "${YELLOW}! AUTONOMOUS BUDGET EXCEEDED${NC}"
-        echo "  Used: $AUTONOMOUS_USED / $AUTONOMOUS_BUDGET tokens"
-        echo "  Reserved budget for Commander: $RESERVED tokens"
+        echo " Used: $AUTONOMOUS_USED / $AUTONOMOUS_BUDGET tokens"
+        echo " Reserved budget for Commander: $RESERVED tokens"
         return 1
     else
-        echo -e "${GREEN}✓ Within budget${NC}"
+        echo -e "${GREEN}[OK] Within budget${NC}"
         return 0
     fi
 }
@@ -170,17 +170,17 @@ case "${1:-show}" in
         echo "Lex Token Budget Manager"
         echo ""
         echo "Usage:"
-        echo "  lex-budget.sh [command]"
+        echo " lex-budget.sh [command]"
         echo ""
         echo "Commands:"
-        echo "  show       Display full budget status (default)"
-        echo "  quick      Show one-line summary"
-        echo "  check      Check if within budget (exit 0 if yes, 1 if no)"
-        echo "  warning    Show warnings if approaching limit"
-        echo "  status     Get status only (HEALTHY/MODERATE/WARNING/CRITICAL)"
-        echo "  percent    Get usage percentage"
-        echo "  remaining  Get remaining tokens"
-        echo "  help       Show this help"
+        echo " show Display full budget status (default)"
+        echo " quick Show one-line summary"
+        echo " check Check if within budget (exit 0 if yes, 1 if no)"
+        echo " warning Show warnings if approaching limit"
+        echo " status Get status only (HEALTHY/MODERATE/WARNING/CRITICAL)"
+        echo " percent Get usage percentage"
+        echo " remaining Get remaining tokens"
+        echo " help Show this help"
         ;;
     *)
         echo "Unknown command: $1"

@@ -125,13 +125,13 @@ Menu navigation is recursive - invalid choices loop back to menu after brief err
 When creating new projects (via `-n` flag or menu option 2), lex creates:
 ```
 project-name/
-├── src/         # Source code
-├── tests/       # Test files
-├── docs/        # Documentation
-├── .claude/     # Claude Code configuration
-│   └── CLAUDE.md  # Project-specific instructions
-├── README.md    # Project README
-└── .gitignore   # Git ignore patterns (empty initially)
+├── src/ # Source code
+├── tests/ # Test files
+├── docs/ # Documentation
+├──.claude/ # Claude Code configuration
+│ └── CLAUDE.md # Project-specific instructions
+├── README.md # Project README
+└──.gitignore # Git ignore patterns (empty initially)
 ```
 
 Git is initialized automatically. User is prompted whether to launch Claude Code immediately after creation.
@@ -223,12 +223,12 @@ Create `tests/test-lex.sh` for:
 
 ## Future Development
 
-### Phase 1: Agent OS Integration ✓ COMPLETED (v1.2)
-- ✓ Add `--agentos-*` flags (v1.1)
-- ✓ Integrate with `setup-agentos` project (v1.1)
-- ✓ Offer setup assistance when unavailable (v1.2)
-- ⚬ Read config from `LEX-CONFIG.yaml` (pending)
-- ⚬ Auto-initialize Agent OS on `--new` (pending)
+### Phase 1: Agent OS Integration [OK] COMPLETED (v1.2)
+- [OK] Add `--agentos-*` flags (v1.1)
+- [OK] Integrate with `setup-agentos` project (v1.1)
+- [OK] Offer setup assistance when unavailable (v1.2)
+- Read config from `LEX-CONFIG.yaml` (pending)
+- Auto-initialize Agent OS on `--new` (pending)
 
 ### Phase 2: Enhanced Features
 - Token budget tracking and warnings
@@ -265,23 +265,23 @@ When adding new functionality:
 ```bash
 # In main() function:
 case "$1" in
-    # ... existing cases ...
+    #... existing cases...
     --new-flag|-nf)
         handle_new_flag "$@"
         ;;
 esac
 
 # In usage() function:
-echo "  --new-flag, -nf  Description"
+echo " --new-flag, -nf Description"
 ```
 
 ### Modify Interactive Menu
 Edit `show_menu()` function:
 ```bash
-echo "  ${GREEN}5)${NC} New Option"
+echo " ${GREEN}5)${NC} New Option"
 
 # In case statement:
-5) handle_new_option ;;
+5) handle_new_option;;
 ```
 
 ## Git Workflow
