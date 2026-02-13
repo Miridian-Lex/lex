@@ -15,13 +15,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Check if yq is available
-if! command -v yq &> /dev/null; then
+if ! command -v yq &> /dev/null; then
     echo -e "${RED}Error:${NC} yq is required but not installed" >&2
     exit 1
 fi
 
 # Check if config file exists
-if [! -f "$CONFIG_FILE" ]; then
+if [ ! -f "$CONFIG_FILE" ]; then
     echo -e "${RED}Error:${NC} Configuration file not found: $CONFIG_FILE" >&2
     exit 1
 fi

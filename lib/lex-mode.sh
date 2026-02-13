@@ -42,7 +42,7 @@ is_valid_mode() {
 # Function: Set mode in LEX-CONFIG.yaml
 set_config_mode() {
     local mode="$1"
-    if! is_valid_mode "$mode"; then
+    if ! is_valid_mode "$mode"; then
         echo -e "${RED}Error:${NC} Invalid mode: $mode" >&2
         echo "Valid modes: ${VALID_MODES[*]}" >&2
         return 1
@@ -54,7 +54,7 @@ set_config_mode() {
 # Function: Set mode in STATE.md
 set_state_mode() {
     local mode="$1"
-    if! is_valid_mode "$mode"; then
+    if ! is_valid_mode "$mode"; then
         echo -e "${RED}Error:${NC} Invalid mode: $mode" >&2
         return 1
     fi
@@ -71,7 +71,7 @@ set_mode() {
     local mode="$1"
     local description="${2:-Operational mode update}"
 
-    if! is_valid_mode "$mode"; then
+    if ! is_valid_mode "$mode"; then
         echo -e "${RED}Error:${NC} Invalid mode: $mode" >&2
         echo "Valid modes: ${VALID_MODES[*]}" >&2
         return 1
@@ -94,7 +94,7 @@ set_mode() {
     # If mode is AUTONOMOUS, check for lock file
     if [ "$mode" = "AUTONOMOUS" ]; then
         local lock_file="$HOME/meridian-home/lex-internal/state/AUTONOMOUS-MODE.lock"
-        if [! -f "$lock_file" ]; then
+        if [ ! -f "$lock_file" ]; then
             echo -e "${YELLOW}!${NC} AUTONOMOUS mode set but no lock file exists"
             echo " Consider creating: $lock_file"
         fi

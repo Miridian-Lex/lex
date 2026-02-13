@@ -18,14 +18,14 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Check if stats file exists
-if [! -f "$STATS_FILE" ]; then
+if [ ! -f "$STATS_FILE" ]; then
     echo -e "${RED}Error:${NC} Stats cache not found at $STATS_FILE"
     echo "Run Claude Code at least once to generate stats"
     exit 1
 fi
 
 # Check if jq is available
-if! command -v jq &> /dev/null; then
+if ! command -v jq &> /dev/null; then
     echo -e "${RED}Error:${NC} jq is required but not installed"
     exit 1
 fi

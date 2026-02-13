@@ -3,7 +3,7 @@
 # Project management functions
 
 list_projects() {
-    [! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
+    [ ! -d "$PROJECTS_DIR" ] && { echo "No projects."; return; }
     local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
     [ ${#projects[@]} -eq 0 ] && { echo -e "${YELLOW}No projects${NC}"; return; }
     echo "Projects:"; echo ""
@@ -16,7 +16,7 @@ select_project() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         # Use smart_launch for conversation management
@@ -35,7 +35,7 @@ select_project_full_access() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project_full_access; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; select_project_full_access; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         # Set full-access flag and use smart_launch
@@ -67,7 +67,7 @@ delete_project() {
     [ ${#projects[@]} -eq 0 ] && { read -p "Enter..."; show_menu; return; }
     echo ""; read -p "Number to delete (or 'b'): " n
     [[ "$n" == "b" ]] && { show_menu; return; }
-    [[! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
+    [[ ! "$n" =~ ^[0-9]+$ ]] && { print_error "Invalid"; sleep 1; delete_project; return; }
     local i=$((n - 1))
     if [ $i -ge 0 ] && [ $i -lt ${#projects[@]} ]; then
         local project_name="${projects[$i]}"

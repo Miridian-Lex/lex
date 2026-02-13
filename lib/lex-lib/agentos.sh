@@ -26,7 +26,7 @@ setup_agentos_project() {
     echo ""
     read -p "Create setup-agentos project now? (y/n): " yn
 
-    if [[ "$yn"!= "y" ]]; then
+    if [[ "$yn" != "y" ]]; then
         print_info "Setup cancelled"
         return 1
     fi
