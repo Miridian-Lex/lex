@@ -1,10 +1,13 @@
 # Lex - Meridian Lex Operational Launcher
 
-A project and context management launcher for Claude Code, integrated with the Meridian Lex infrastructure.
+> **ARCHIVED** — This project is superseded by [Stratavore](https://github.com/Meridian-Lex/Stratavore), the V3 rewrite.
+> This repository is preserved for historical reference only. No further development will occur here.
+
+A project and context management launcher for Meridian Lex, integrated with the Meridian Lex infrastructure.
 
 ## Overview
 
-Lex is the command-line launcher that manages projects, state, and Claude Code sessions within the Meridian ecosystem at `~/meridian-home/`.
+Lex is the command-line launcher that manages projects, state, and Meridian Lex sessions within the Meridian ecosystem at `~/meridian-home/`.
 
 ## Features
 
@@ -125,7 +128,9 @@ lex/
 │   └── test-lex.sh      # Test suite
 ├── docs/
 │   └── architecture.md  # Architecture documentation
+<!-- IDENTITY-EXCEPTION: functional internal reference — not for public exposure -->
 └── .claude/
+    <!-- IDENTITY-EXCEPTION: functional internal reference — not for public exposure -->
     └── CLAUDE.md        # Development guidance
 ```
 
