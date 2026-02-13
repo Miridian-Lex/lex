@@ -28,15 +28,15 @@ export CHECK_AUTO_SH="$LEX_HOME/bash-scripts/check-autonomous-mode.sh"
 # Print utilities
 print_header() {
     echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  MERIDIAN LEX - Operational Launcher${NC}"
+    echo -e "${CYAN} MERIDIAN LEX - Operational Launcher${NC}"
     echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
     echo ""
 }
 
-print_success() { echo -e "${GREEN}✓${NC} $1"; }
-print_error() { echo -e "${RED}✗${NC} $1"; }
-print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
-print_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
+print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+print_error() { echo -e "${RED}[FAIL]${NC} $1"; }
+print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+print_warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
 # State management
 update_state() {

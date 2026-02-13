@@ -18,9 +18,9 @@ setup_agentos_project() {
     print_info "Agent OS integration requires the 'setup-agentos' project"
     echo ""
     echo "This project provides:"
-    echo "  - Agent OS base installation scripts"
-    echo "  - Project-specific Agent OS initialization"
-    echo "  - Integration functions for lex"
+    echo " - Agent OS base installation scripts"
+    echo " - Project-specific Agent OS initialization"
+    echo " - Integration functions for lex"
     echo ""
     echo "Location: $SETUP_AGENTOS_DIR"
     echo ""
@@ -53,9 +53,9 @@ This project provides:
 
 Via lex:
 ```bash
-lex --agentos-install-base    # Install base Agent OS
-lex --agentos-init            # Initialize in current project
-lex --agentos-status          # Check status
+lex --agentos-install-base # Install base Agent OS
+lex --agentos-init # Initialize in current project
+lex --agentos-status # Check status
 ```
 
 ## Structure
@@ -74,42 +74,42 @@ agentos_init_current_project() {
     local profile="${1:-default}"
     echo "Initializing Agent OS in $(pwd) with profile: $profile"
     # TODO: Implement project initialization
-    echo "⚠ Agent OS initialization not yet implemented"
-    echo "  This is a placeholder - full implementation pending"
+    echo "[WARNING] Agent OS initialization not yet implemented"
+    echo " This is a placeholder - full implementation pending"
 }
 
 agentos_status() {
     local target="${1:-.}"
     echo "Agent OS status for: $target"
     # TODO: Implement status check
-    echo "⚠ Status check not yet implemented"
+    echo "[WARNING] Status check not yet implemented"
 }
 
 agentos_verify() {
     local target="${1:-.}"
     echo "Verifying Agent OS installation for: $target"
     # TODO: Implement verification
-    echo "⚠ Verification not yet implemented"
+    echo "[WARNING] Verification not yet implemented"
 }
 
 agentos_install_base() {
     echo "Installing Agent OS base..."
     # TODO: Implement base installation
-    echo "⚠ Base installation not yet implemented"
-    echo "  Manual setup may be required"
+    echo "[WARNING] Base installation not yet implemented"
+    echo " Manual setup may be required"
 }
 
 agentos_update_base() {
     echo "Updating Agent OS base..."
     # TODO: Implement base update
-    echo "⚠ Update not yet implemented"
+    echo "[WARNING] Update not yet implemented"
 }
 EOF
 
     chmod +x src/lex-integration.sh
 
-    # Create .claude/CLAUDE.md
-    cat > .claude/CLAUDE.md <<'EOF'
+    # Create.claude/CLAUDE.md
+    cat >.claude/CLAUDE.md <<'EOF'
 # Project: setup-agentos
 
 Agent OS integration and installation tools for Meridian Lex infrastructure.
@@ -123,7 +123,7 @@ Provides Agent OS setup, initialization, and integration functions for lex launc
 Implement the functions in `src/lex-integration.sh` to provide full Agent OS support.
 EOF
 
-    touch .gitignore
+    touch.gitignore
 
     print_success "Created setup-agentos project with placeholder functions"
     print_warn "Integration functions are placeholders - full implementation needed"

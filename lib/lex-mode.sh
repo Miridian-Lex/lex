@@ -63,7 +63,7 @@ set_state_mode() {
     # Look for pattern: **Mode**: `SOMETHING`
     sed -i "s/\*\*Mode\*\*: \`[A-Z]*\`/\*\*Mode\*\*: \`$mode\`/" "$STATE_FILE"
 
-    echo -e "${GREEN}✓${NC} Updated STATE.md mode to $mode"
+    echo -e "${GREEN}[OK]${NC} Updated STATE.md mode to $mode"
 }
 
 # Function: Set mode in both locations
@@ -89,14 +89,14 @@ set_mode() {
     local timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
     sed -i "s/\*\*Last Updated\*\*:.*/\*\*Last Updated\*\*: $timestamp/" "$STATE_FILE"
 
-    echo -e "${GREEN}✓${NC} Mode synchronized across LEX-CONFIG.yaml and STATE.md"
+    echo -e "${GREEN}[OK]${NC} Mode synchronized across LEX-CONFIG.yaml and STATE.md"
 
     # If mode is AUTONOMOUS, check for lock file
     if [ "$mode" = "AUTONOMOUS" ]; then
         local lock_file="$HOME/meridian-home/lex-internal/state/AUTONOMOUS-MODE.lock"
         if [ ! -f "$lock_file" ]; then
             echo -e "${YELLOW}!${NC} AUTONOMOUS mode set but no lock file exists"
-            echo "  Consider creating: $lock_file"
+            echo " Consider creating: $lock_file"
         fi
     fi
 
@@ -105,7 +105,7 @@ set_mode() {
         local lock_file="$HOME/meridian-home/lex-internal/state/AUTONOMOUS-MODE.lock"
         if [ -f "$lock_file" ]; then
             echo -e "${YELLOW}!${NC} IDLE mode set but autonomous lock file still exists"
-            echo "  Consider removing: $lock_file"
+            echo " Consider removing: $lock_file"
         fi
     fi
 }
@@ -117,20 +117,20 @@ check_sync() {
 
     echo -e "${BLUE}=== Mode Sync Status ===${NC}\n"
     echo "LEX-CONFIG.yaml: $config_mode"
-    echo "STATE.md:        $state_mode"
+    echo "STATE.md: $state_mode"
     echo
 
     if [ "$config_mode" = "$state_mode" ]; then
-        echo -e "${GREEN}✓ Modes are synchronized${NC}"
+        echo -e "${GREEN}[OK] Modes are synchronized${NC}"
         return 0
     else
         echo -e "${YELLOW}! Modes are NOT synchronized${NC}"
         echo
         echo "To sync (use CONFIG as source):"
-        echo "  lex-mode.sh sync-from-config"
+        echo " lex-mode.sh sync-from-config"
         echo
         echo "To sync (use STATE as source):"
-        echo "  lex-mode.sh sync-from-state"
+        echo " lex-mode.sh sync-from-state"
         return 1
     fi
 }
@@ -153,7 +153,7 @@ sync_from_state() {
 case "${1:-}" in
     get)
         echo "Config: $(get_config_mode)"
-        echo "State:  $(get_state_mode)"
+        echo "State: $(get_state_mode)"
         ;;
     set)
         if [ -z "$2" ]; then
@@ -176,26 +176,26 @@ case "${1:-}" in
         echo "Lex Operational Mode Manager"
         echo
         echo "Usage:"
-        echo "  lex-mode.sh [command] [arguments]"
+        echo " lex-mode.sh [command] [arguments]"
         echo
         echo "Commands:"
-        echo "  get                    Get current mode from both sources"
-        echo "  set <MODE> [desc]      Set mode in both CONFIG and STATE"
-        echo "  check                  Check if modes are synchronized"
-        echo "  sync-from-config       Sync STATE.md from LEX-CONFIG.yaml"
-        echo "  sync-from-state        Sync LEX-CONFIG.yaml from STATE.md"
-        echo "  help                   Show this help message"
+        echo " get Get current mode from both sources"
+        echo " set <MODE> [desc] Set mode in both CONFIG and STATE"
+        echo " check Check if modes are synchronized"
+        echo " sync-from-config Sync STATE.md from LEX-CONFIG.yaml"
+        echo " sync-from-state Sync LEX-CONFIG.yaml from STATE.md"
+        echo " help Show this help message"
         echo
         echo "Valid Modes:"
-        echo "  IDLE          - Awaiting assignment"
-        echo "  AUTONOMOUS    - Working independently"
-        echo "  DIRECTED      - Following specific instructions"
-        echo "  COLLABORATIVE - Real-time collaboration"
+        echo " IDLE - Awaiting assignment"
+        echo " AUTONOMOUS - Working independently"
+        echo " DIRECTED - Following specific instructions"
+        echo " COLLABORATIVE - Real-time collaboration"
         echo
         echo "Examples:"
-        echo "  lex-mode.sh get"
-        echo "  lex-mode.sh set AUTONOMOUS"
-        echo "  lex-mode.sh check"
+        echo " lex-mode.sh get"
+        echo " lex-mode.sh set AUTONOMOUS"
+        echo " lex-mode.sh check"
         ;;
     *)
         echo -e "${RED}Error:${NC} Unknown command: $1" >&2

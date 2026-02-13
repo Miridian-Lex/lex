@@ -7,7 +7,7 @@ list_projects() {
     local projects=($(ls -1 "$PROJECTS_DIR" 2>/dev/null))
     [ ${#projects[@]} -eq 0 ] && { echo -e "${YELLOW}No projects${NC}"; return; }
     echo "Projects:"; echo ""
-    for i in "${!projects[@]}"; do echo "  $((i + 1))) ${projects[$i]}"; done
+    for i in "${!projects[@]}"; do echo " $((i + 1))) ${projects[$i]}"; done
 }
 
 select_project() {
@@ -54,8 +54,8 @@ create_project() {
     mkdir -p "$path"/{src,tests,docs,.claude}
     cd "$path"; git init
     echo "# $name" > README.md
-    echo "# Project: $name" > .claude/CLAUDE.md
-    touch .gitignore
+    echo "# Project: $name" >.claude/CLAUDE.md
+    touch.gitignore
     print_success "Created"
     read -p "Launch? (y/n): " yn
     [[ "$yn" == "y" ]] && launch_claude "$path" "$name" || show_menu
@@ -73,10 +73,10 @@ delete_project() {
         local project_name="${projects[$i]}"
         local project_path="$PROJECTS_DIR/$project_name"
         echo ""
-        print_warn "⚠ DESTRUCTIVE OPERATION ⚠"
+        print_warn "[WARNING] DESTRUCTIVE OPERATION [WARNING]"
         echo ""
-        echo -e "  Project: ${RED}$project_name${NC}"
-        echo "  Path: $project_path"
+        echo -e " Project: ${RED}$project_name${NC}"
+        echo " Path: $project_path"
         echo ""
         echo "This will permanently delete all files in this project."
         echo ""
